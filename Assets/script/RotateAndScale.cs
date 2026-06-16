@@ -2,29 +2,29 @@ using UnityEngine;
 
 public class RotateAndScale : MonoBehaviour
 {
-    public float rotationSpeed = 50f;  // ±ÛÂà³t«×
-    public float scaleSpeed = 0.5f;    // ÁY©ñ³t«×
-    public float minScale = 0.5f;      // ³Ì¤pÁY©ñ¤ñ¨Ò
-    public float maxScale = 1.5f;      // ³Ì¤jÁY©ñ¤ñ¨Ò
+    public float rotationSpeed = 50f;  // æ—‹è½‰é€Ÿåº¦
+    public float scaleSpeed = 0.5f;    // ç¸®æ”¾é€Ÿåº¦
+    public float minScale = 0.5f;      // æœ€å°ç¸®æ”¾æ¯”ä¾‹
+    public float maxScale = 1.5f;      // æœ€å¤§ç¸®æ”¾æ¯”ä¾‹
 
-    private bool isScalingUp = true;   // ±±¨îÁY©ñ¤è¦V
+    private bool isScalingUp = true;   // æ§åˆ¶ç¸®æ”¾æ–¹å‘
 
     void Update()
     {
-        // ¥u¦b Z ¶b¤W±ÛÂà
+        // åªåœ¨ Z è»¸ä¸Šæ—‹è½‰
         transform.Rotate(Vector3.forward * rotationSpeed * Time.deltaTime);
 
-        // ÁY©ñª«Åé
+        // ç¸®æ”¾ç‰©é«”
         if (isScalingUp)
         {
             transform.localScale += Vector3.one * scaleSpeed * Time.deltaTime;
-            if (transform.localScale.x >= maxScale)  // ¨ì¹F³Ì¤jÁY©ñ®É¡A¶}©lÁY¤p
+            if (transform.localScale.x >= maxScale)  // åˆ°é”æœ€å¤§ç¸®æ”¾æ™‚ï¼Œé–‹å§‹ç¸®å°
                 isScalingUp = false;
         }
         else
         {
             transform.localScale -= Vector3.one * scaleSpeed * Time.deltaTime;
-            if (transform.localScale.x <= minScale)  // ¨ì¹F³Ì¤pÁY©ñ®É¡A¶}©l©ñ¤j
+            if (transform.localScale.x <= minScale)  // åˆ°é”æœ€å°ç¸®æ”¾æ™‚ï¼Œé–‹å§‹æ”¾å¤§
                 isScalingUp = true;
         }
     }

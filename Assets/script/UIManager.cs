@@ -19,13 +19,13 @@ public class UIManager : MonoBehaviour
     public CanvasGroup uiCanvasGroup;
     public CanvasGroup deathPanelGroup;
 
-    [Header("»İ­n³QÁôÂÃ/Åã¥Üªº¹CÀ¸ª«¥ó")]
-    [Tooltip("¨Ò¦p¡G¾ã­Ó¹CÀ¸¥@¬Éªº Root¡B¼Ä¤H¸s²Õ¡B³õ´ºª«¥óµ¥¡A¤§«á¤£¥Î¨C¦¸ Find¡C")]
+    [Header("éœ€è¦è¢«éš±è—/é¡¯ç¤ºçš„éŠæˆ²ç‰©ä»¶")]
+    [Tooltip("ä¾‹å¦‚ï¼šæ•´å€‹éŠæˆ²ä¸–ç•Œçš„ Rootã€æ•µäººç¾¤çµ„ã€å ´æ™¯ç‰©ä»¶ç­‰ï¼Œä¹‹å¾Œä¸ç”¨æ¯æ¬¡ Findã€‚")]
     [SerializeField] private List<GameObject> objectsToHide = new List<GameObject>();
 
     public static UIManager instance;
 
-    // ¹ê»Ú¦b¬yµ{¤¤¦³³QÃö³¬ªºª«¥ó¡]Á×§K¦h¦¸©I¥s®É­«½Æ¶ë¡^
+    // å¯¦éš›åœ¨æµç¨‹ä¸­æœ‰è¢«é—œé–‰çš„ç‰©ä»¶ï¼ˆé¿å…å¤šæ¬¡å‘¼å«æ™‚é‡è¤‡å¡ï¼‰
     private List<GameObject> hiddenObjects = new List<GameObject>();
 
     private void Awake()
@@ -38,7 +38,7 @@ public class UIManager : MonoBehaviour
 
     public void Start()
     {
-        // ¶}³õ¥ı¶]·j´M°Êµe
+        // é–‹å ´å…ˆè·‘æœå°‹å‹•ç•«
         StartSearch();
 
         if (BossManager.instance != null)
@@ -56,7 +56,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // ====== UI ±M¥Î API ======
+    // ====== UI å°ˆç”¨ API ======
 
     public void UpdateScoreUI(string totalDamage)
     {
@@ -76,7 +76,7 @@ public class UIManager : MonoBehaviour
             coinText.text = ":" + value;
     }
 
-    // ====== Ask / End ¬yµ{ ======
+    // ====== Ask / End æµç¨‹ ======
 
     public void Ask()
     {
@@ -163,7 +163,7 @@ public class UIManager : MonoBehaviour
         yield return StartCoroutine(EndCoroutine());
     }
 
-    // ====== Åã¥Ü / ÁôÂÃ³õ´ºª«¥ó¡]§ï¹L¡^ ======
+    // ====== é¡¯ç¤º / éš±è—å ´æ™¯ç‰©ä»¶ï¼ˆæ”¹éï¼‰ ======
 
     public void ShowAllNonUIObjects()
     {
@@ -179,7 +179,7 @@ public class UIManager : MonoBehaviour
     {
         hiddenObjects.Clear();
 
-        // ¥u³B²z¨Æ¥ı«ü©w¦b objectsToHide ¸Ì­±ªºª«¥ó
+        // åªè™•ç†äº‹å…ˆæŒ‡å®šåœ¨ objectsToHide è£¡é¢çš„ç‰©ä»¶
         foreach (GameObject obj in objectsToHide)
         {
             if (obj == null) continue;
@@ -192,7 +192,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // ====== ·j´M¬yµ{ ======
+    // ====== æœå°‹æµç¨‹ ======
 
     public void StartSearch()
     {

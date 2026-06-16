@@ -5,8 +5,8 @@ public class BossManager : MonoBehaviour
 {
     public static BossManager instance;
 
-    public List<Sprite> bossSprites;        // BOSS ¹Ï
-    public List<Sprite> enemySprites;       // Âø§L¹Ï
+    public List<Sprite> bossSprites;        // BOSS åœ–
+    public List<Sprite> enemySprites;       // é›œå…µåœ–
     public SpriteRenderer bossSpriteRenderer;
     public SpriteRenderer enemySpriteRenderer;
 
@@ -23,7 +23,7 @@ public class BossManager : MonoBehaviour
     private float enemyHealth = 100f;
     private int lastEnemyIndex = -1;
 
-    public int eggCount = 0;   // ¼Æ¦r¦b³o¸ÌºûÅ@
+    public int eggCount = 0;   // æ•¸å­—åœ¨é€™è£¡ç¶­è­·
     public int coinCount = 0;
 
     void Awake()
@@ -36,7 +36,7 @@ public class BossManager : MonoBehaviour
 
     private void Start()
     {
-        // ¤@¶}©l§â¥Ø«e¼Æ¦r¥áµ¹ UI¡]³q±`¬O 0¡^
+        // ä¸€é–‹å§‹æŠŠç›®å‰æ•¸å­—ä¸Ÿçµ¦ UIï¼ˆé€šå¸¸æ˜¯ 0ï¼‰
         if (UIManager.instance != null)
         {
             UIManager.instance.UpdateEggUI(eggCount);
@@ -76,7 +76,7 @@ public class BossManager : MonoBehaviour
         }
     }
 
-    // ±¼¸¨ª«ÅŞ¿è¡G¥uºâ¼Æ¦r + ¦^¶Ç Prefab¡AUI ¥æµ¹ UIManager
+    // æ‰è½ç‰©é‚è¼¯ï¼šåªç®—æ•¸å­— + å›å‚³ Prefabï¼ŒUI äº¤çµ¦ UIManager
     public GameObject DetermineDropItem(ref int eggDropCount, GameObject[] eggPrefabs, GameObject coinPrefab, bool isBoss)
     {
         bool shouldDropEgg = false;
@@ -105,7 +105,7 @@ public class BossManager : MonoBehaviour
             eggDropCount++;
             eggCount++;
 
-            // ³qª¾ UI
+            // é€šçŸ¥ UI
             if (UIManager.instance != null)
                 UIManager.instance.UpdateEggUI(eggCount);
 
@@ -118,7 +118,7 @@ public class BossManager : MonoBehaviour
             return eggPrefabs[eggIndex];
         }
 
-        // ª÷¹ô
+        // é‡‘å¹£
         coinCount++;
         if (UIManager.instance != null)
             UIManager.instance.UpdateCoinUI(coinCount);
@@ -132,7 +132,7 @@ public class BossManager : MonoBehaviour
 
         if (randomValue < 0.5f)
         {
-            // Âø§L
+            // é›œå…µ
             healthManager.bossPrefab.SetActive(false);
             int selectedEnemyIndex = (lastEnemyIndex == 0) ? 1 : 0;
             lastEnemyIndex = selectedEnemyIndex;

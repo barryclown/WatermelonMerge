@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class EnemyDeathEffect : MonoBehaviour
 {
-    [Header("¦º¤`¯S®Ä°Ñ¼Æ")]
+    [Header("æ­»äº¡ç‰¹æ•ˆåƒæ•¸")]
     public float fadeDuration = 1.0f;
     public float jumpHeight = 1f;
     public float jumpDuration = 0.5f;
@@ -20,7 +20,7 @@ public class EnemyDeathEffect : MonoBehaviour
    
     public IEnumerator PlayDeath(GameObject dropPrefab)
     {
-        // 1. ¦Û¤v²H¥X
+        // 1. è‡ªå·±æ·¡å‡º
         if (spriteRenderer != null)
         {
             Color originColor = spriteRenderer.color;
@@ -35,13 +35,13 @@ public class EnemyDeathEffect : MonoBehaviour
             }
         }
 
-        // 2. ±¼¸¨ª«°Êµe
+        // 2. æ‰è½ç‰©å‹•ç•«
         if (dropPrefab != null)
         {
             GameObject droppedObject = Instantiate(dropPrefab, transform.position, Quaternion.identity);
             SpriteRenderer droppedSpriteRenderer = droppedObject.GetComponent<SpriteRenderer>();
 
-            // ¸õ°_
+            // è·³èµ·
             Vector3 startPos = droppedObject.transform.position;
             Vector3 targetPos = startPos + Vector3.up * jumpHeight;
             float elapsed = 0f;
@@ -54,7 +54,7 @@ public class EnemyDeathEffect : MonoBehaviour
                 yield return null;
             }
 
-            // ±¼¤U
+            // æ‰ä¸‹
             elapsed = 0f;
             startPos = droppedObject.transform.position;
             targetPos = startPos - Vector3.up * jumpHeight;
@@ -67,10 +67,10 @@ public class EnemyDeathEffect : MonoBehaviour
                 yield return null;
             }
 
-            // °±¯d
+            // åœç•™
             yield return new WaitForSeconds(stayDuration);
 
-            // ±¼¸¨ª«²H¥X
+            // æ‰è½ç‰©æ·¡å‡º
             if (droppedSpriteRenderer != null)
             {
                 Color dropOriginColor = droppedSpriteRenderer.color;
@@ -93,7 +93,7 @@ public class EnemyDeathEffect : MonoBehaviour
             Destroy(droppedObject);
         }
 
-        // 3. ÁÙ­ìÃC¦â¡AÃö±¼ª«¥ó¡Aµ¥¤U¤@½ü³Q±Ò¥Î
+        // 3. é‚„åŸé¡è‰²ï¼Œé—œæ‰ç‰©ä»¶ï¼Œç­‰ä¸‹ä¸€è¼ªè¢«å•Ÿç”¨
         if (spriteRenderer != null)
         {
             Color c = spriteRenderer.color;
