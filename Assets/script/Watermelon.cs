@@ -6,11 +6,26 @@ public class Watermelon : MonoBehaviour
     [Header("等級（1 ~ N）")]
     public int level = 1;
 
-    [Header("各等級西瓜 Prefab（從 GameManager 帶進來）")]
+    [Header("各等級寵物 Prefab（從 GameManager 帶進來）")]
     public GameObject[] watermelonPrefabs;
 
    
     [HideInInspector] public bool isMerging = false;
+
+    // Boss 丟的垃圾果（死亡時清除）；炸彈手能力生成的炸彈果
+    [HideInInspector] public bool isJunk = false;
+    [HideInInspector] public bool isBomb = false;
+    private bool exploded = false;
+
+    // 連鎖 combo（給「連鎖大師」傷害加成用）：短時間內連續合成累加
+    public static int CurrentCombo = 0;
+    private static float lastMergeTime = -10f;
+
+    // 本場累計合成次數（給新手引導偵測「完成第一次合成」）；新 run 在 BattleStageManager.Start 重置
+    public static int TotalMerges = 0;
+
+    // 「寵物大爆發」能力觸發門檻：合成出第 N 級以上才爆（初版可調；最高級 10 幾乎不可能達成，故降到做得到的高級）
+    private const int MelonBurstLevel = 6;
 
     private void Awake()
     {
@@ -36,6 +51,16 @@ public class Watermelon : MonoBehaviour
 
         GameObject otherObj = collision.gameObject;
 
+        // 炸彈果：第一次撞到牆或其他果就爆炸（清周圍，不合成）
+        if (isBomb && !exploded)
+        {
+            if (otherObj.CompareTag("Wall") || otherObj.GetComponent<Watermelon>() != null)
+            {
+                Explode();
+                return;
+            }
+        }
+
         // 撞牆（Tag=Wall）就播一下音效
         if (otherObj.CompareTag("Wall"))
         {
@@ -43,10 +68,10 @@ public class Watermelon : MonoBehaviour
             return;
         }
 
-        // 看有沒有撞到別顆西瓜
+        // 看有沒有撞到別顆寵物
         Watermelon otherWatermelon = otherObj.GetComponent<Watermelon>();
 
-        // 撞到不是西瓜就當一般碰撞
+        // 撞到不是寵物就當一般碰撞
         if (otherWatermelon == null)
         {
             PlayHitSound();
@@ -114,6 +139,12 @@ public class Watermelon : MonoBehaviour
     {
         int newLevel = level + 1;
 
+        // 連鎖 combo：短時間內連續合成則累加，否則歸零（給「連鎖大師」加成用）
+        if (Time.time - lastMergeTime <= 0.5f) CurrentCombo++;
+        else CurrentCombo = 0;
+        lastMergeTime = Time.time;
+        TotalMerges++;
+
         // 合成順便打一下敵人
         if (BattleStageManager.instance != null && BattleStageManager.instance.currentEnemy != null)
         {
@@ -130,14 +161,31 @@ public class Watermelon : MonoBehaviour
             Debug.LogError("FX Instance is null!");
         }
 
+        // 合成爆裂特效：等級越高、連鎖越長 → 爆得越大越暖
+        if (FXManager.instance != null)
+        {
+            float lvlT = Mathf.Clamp01((newLevel - 1) / 8f);
+            // 暖橘→桃紅（避免奶白在奶白底上看不見），高等級更紅更大
+            Color burstColor = Color.Lerp(new Color(1f, 0.66f, 0.32f), new Color(1f, 0.32f, 0.42f), lvlT);
+            float burstScale = 0.8f + lvlT * 0.9f + Mathf.Min(CurrentCombo, 4) * 0.12f;
+            FXManager.instance.Burst(mergePosition, burstColor, burstScale);
+        }
+
         // 給音效 / 特效一點時間
         yield return new WaitForSeconds(0.1f);
 
         if (newLevel >= watermelonPrefabs.Length)
         {
             // 已經是最高等級，兩顆直接收掉
+            Vector3 burstPos = mergePosition;
             DestroyImmediateObjects(otherWatermelon);
             DestroyImmediateObjects(this);
+
+            // 「寵物大爆發」：撐到最高級也算高級合成 → 炸開周圍一圈並重擊頭目
+            if (AbilityManager.instance != null && AbilityManager.instance.melonBurst)
+            {
+                MelonBurstAround(burstPos, null);
+            }
         }
         else
         {
@@ -154,6 +202,12 @@ public class Watermelon : MonoBehaviour
 
                 Collider2D newCollider = newWatermelon.GetComponent<Collider2D>();
                 if (newCollider != null) newCollider.enabled = true;
+
+                // 「寵物大爆發」：合成出高級寵物（第 N 級以上）就觸發，炸開周圍（不含這隻新寵物）並重擊頭目
+                if (AbilityManager.instance != null && AbilityManager.instance.melonBurst && newLevel >= MelonBurstLevel)
+                {
+                    MelonBurstAround(mergePosition, newWatermelon);
+                }
 
                 // 等一幀物理更新
                 yield return new WaitForFixedUpdate();
@@ -175,6 +229,65 @@ public class Watermelon : MonoBehaviour
         if (watermelon != null && watermelon.gameObject != null)
         {
             Destroy(watermelon.gameObject);
+        }
+    }
+
+    // 炸彈果爆炸：清掉周圍一圈果，每清一顆對 Boss 造成傷害
+    private void Explode()
+    {
+        if (exploded) return;
+        exploded = true;
+        isMerging = true;
+
+        if (SoundManager.Instance != null) SoundManager.Instance.PlayFX(1);
+
+        float radius = 1.8f;
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius);
+        int cleared = 0;
+        foreach (var h in hits)
+        {
+            if (h == null) continue;
+            Watermelon w = h.GetComponent<Watermelon>();
+            if (w != null && w != this)
+            {
+                cleared++;
+                Destroy(w.gameObject);
+            }
+        }
+
+        if (BattleStageManager.instance != null && BattleStageManager.instance.currentEnemy != null)
+            BattleStageManager.instance.TakeRawDamage(20f + cleared * 10f, BattleStageManager.instance.currentEnemy.transform.position);
+
+        Destroy(gameObject);
+    }
+
+    // 寵物大爆發：高級合成時炸開周圍一圈（exclude 之外），並對頭目追加傷害
+    private void MelonBurstAround(Vector3 pos, GameObject exclude)
+    {
+        float radius = 2.0f;
+        Collider2D[] hits = Physics2D.OverlapCircleAll(pos, radius);
+        int cleared = 0;
+        foreach (var h in hits)
+        {
+            if (h == null) continue;
+            if (exclude != null && h.gameObject == exclude) continue; // 不炸掉剛合成出的高級寵物
+            Watermelon w = h.GetComponent<Watermelon>();
+            if (w != null && w.gameObject != exclude)
+            {
+                cleared++;
+                Destroy(w.gameObject);
+            }
+        }
+
+        // 追加傷害：基礎 ＋ 清掉數量（初版可調）
+        if (BattleStageManager.instance != null && BattleStageManager.instance.currentEnemy != null)
+            BattleStageManager.instance.TakeRawDamage(60f + cleared * 8f, BattleStageManager.instance.currentEnemy.transform.position);
+
+        if (FX.Instance != null) FX.Instance.StartCoroutine("FlashFX");
+        if (FXManager.instance != null)
+        {
+            FXManager.instance.Burst(pos, new Color(1f, 0.5f, 0.55f), 2.2f);
+            FXManager.instance.Shake(0.5f, 0.35f);
         }
     }
 

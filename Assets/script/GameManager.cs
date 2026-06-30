@@ -44,6 +44,10 @@ public class GameManager : MonoBehaviour
 
     public static bool isDragging = false;
 
+    private int dropCount = 0;  // 累計投放數（給「炸彈手」每第 5 顆用）
+    public int DropCount => dropCount;  // 給新手引導偵測「已放下第一隻」
+    public bool forceTutorialLv1 = false;  // 新手引導期間強制生成 Lv1，前兩顆必同款→必合成
+
     [Header("Prediction Raycast")]
     public LayerMask collisionLayerMask;
 
@@ -68,6 +72,16 @@ public class GameManager : MonoBehaviour
                 instantiatedItem = Instantiate(GetRandomFruit(), mousePosition, Quaternion.identity);
                 itemrb = instantiatedItem.GetComponent<Rigidbody2D>();
                 timer = 2.5f;
+
+                dropCount++;
+                // 「炸彈手」能力：每投放第 5 顆變成炸彈果（落地清周圍）
+                if (AbilityManager.instance != null && AbilityManager.instance.bomber && dropCount % 5 == 0)
+                {
+                    Watermelon w = instantiatedItem.GetComponent<Watermelon>();
+                    if (w != null) w.isBomb = true;
+                    SpriteRenderer sr = instantiatedItem.GetComponent<SpriteRenderer>();
+                    if (sr != null) sr.color = new Color(0.4f, 0.4f, 0.45f, 1f); // 炸彈染深色
+                }
 
                 ShowPrediction(instantiatedItem);
                 isDragging = true;
@@ -121,20 +135,34 @@ public class GameManager : MonoBehaviour
             return null;
         }
 
+        // 新手引導：強制 Lv1，確保前兩顆同款穩定合成
+        if (forceTutorialLv1)
+            return watermelonPrefabs[0];
+
         GameObject selectedFruit;
+
+        // 「好運起手」能力：投放偏向高級果
+        bool lucky = AbilityManager.instance != null && AbilityManager.instance.luckyStart;
 
         do
         {
             float randomValue = Random.Range(0f, 100f);
 
-            if (randomValue < 40f)
-                selectedFruit = watermelonPrefabs[0];
-            else if (randomValue < 70f)
-                selectedFruit = watermelonPrefabs[1];
-            else if (randomValue < 90f)
-                selectedFruit = watermelonPrefabs[2];
+            if (!lucky)
+            {
+                if (randomValue < 40f) selectedFruit = watermelonPrefabs[0];
+                else if (randomValue < 70f) selectedFruit = watermelonPrefabs[1];
+                else if (randomValue < 90f) selectedFruit = watermelonPrefabs[2];
+                else selectedFruit = watermelonPrefabs[3];
+            }
             else
-                selectedFruit = watermelonPrefabs[3];
+            {
+                // 偏高級：25 / 30 / 30 / 15
+                if (randomValue < 25f) selectedFruit = watermelonPrefabs[0];
+                else if (randomValue < 55f) selectedFruit = watermelonPrefabs[1];
+                else if (randomValue < 85f) selectedFruit = watermelonPrefabs[2];
+                else selectedFruit = watermelonPrefabs[3];
+            }
 
         } while (selectedFruit == lastFruit && selectedFruit == secondLastFruit);
 
@@ -200,9 +228,12 @@ public class GameManager : MonoBehaviour
 
         Vector2 gravity = Physics2D.gravity;
 
-        float fallTime = Mathf.Sqrt(2 * (startPosition.y - yMin) / -gravity.y);
+        // 守衛：球被拖到 yMin 以下時 (startPosition.y - yMin) 為負，Sqrt 會變 NaN → 夾住避免崩潰
+        float dy = Mathf.Max(0f, startPosition.y - yMin);
+        float fallTime = Mathf.Sqrt(2f * dy / -gravity.y);
 
-        float predictedY = startPosition.y + 0.5f * gravity.y * Mathf.Pow(fallTime, 2);
+        float predictedY = startPosition.y + 0.5f * gravity.y * fallTime * fallTime;
+        if (float.IsNaN(predictedY) || float.IsInfinity(predictedY)) predictedY = yMin;
 
         predictedItem.transform.position = new Vector2(startPosition.x, predictedY);
 

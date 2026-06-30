@@ -22,6 +22,21 @@ public class DamageManager : MonoBehaviour
         GameObject newDamage = GetFromPool();
         newDamage.SetActive(true);
         SetUp(newDamage, roundedDamage, location);
+        var dn = newDamage.GetComponent<DamageNumber>();
+        if (dn != null) dn.Configure(damageAmount, false);
+    }
+
+    // 閃避：顯示 "MISS"
+    public void SpawnMiss(Vector3 location)
+    {
+        GameObject newDamage = GetFromPool();
+        newDamage.SetActive(true);
+        TMP_Text t = newDamage.GetComponent<TMP_Text>();
+        if (t != null) t.text = "MISS";
+        location.x += Random.Range(-0.5f, 0.2f);
+        newDamage.transform.position = location;
+        var dn = newDamage.GetComponent<DamageNumber>();
+        if (dn != null) dn.Configure(0f, true);
     }
 
     public GameObject GetFromPool()

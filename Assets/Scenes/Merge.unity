@@ -327,9 +327,12 @@ MonoBehaviour:
   deathPanel: {fileID: 1235539183}
   askPanel: {fileID: 2045157853}
   searchPanel: {fileID: 259926855}
+  winPanel: {fileID: 0}
+  resultText: {fileID: 0}
+  endingPetSprite: {fileID: 21300000, guid: c47b75d0411752f419ae7b516bc25136, type: 3}
+  restartButton: {fileID: 0}
   score: {fileID: 1802330910}
-  eggText: {fileID: 185068930}
-  coinText: {fileID: 1670578329}
+  bossProgressText: {fileID: 0}
   uiCanvasGroup: {fileID: 653654009}
   deathPanelGroup: {fileID: 1235539185}
   objectsToHide:
@@ -1031,13 +1034,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 50441e35a46142049b2486c447bafa4c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rotationSpeed: 50
-  rotationRange: 10
   pet: {fileID: 892448910}
-  spawnDelay: 2
-  moveDuration: 3
-  spawnPosition: {x: -4, y: 1, z: 0}
-  targetPosition: {x: 0, y: 1, z: 0}
+  openingDone: 0
 --- !u!1 &584396883
 GameObject:
   m_ObjectHideFlags: 0
@@ -2266,8 +2264,6 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 60bb06995a908fa4c8142babb59ec038, type: 3}
   bossSpriteRenderer: {fileID: 584396884}
   enemySpriteRenderer: {fileID: 925417672}
-  eggCount: 0
-  coinCount: 0
 --- !u!1 &925417670
 GameObject:
   m_ObjectHideFlags: 0
@@ -2661,7 +2657,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &998999334
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3371,7 +3367,7 @@ Transform:
   m_GameObject: {fileID: 1310330275}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.3718971, y: -2.2364826, z: 0.081621155}
+  m_LocalPosition: {x: 1.3718971, y: -2.52, z: 0.081621155}
   m_LocalScale: {x: 0.12200271, y: 0.12107997, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -3475,7 +3471,7 @@ VideoPlayer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1346113283}
-  m_Enabled: 1
+  m_Enabled: 0
   m_VideoClip: {fileID: 32900000, guid: affe892572412c24d910e26620a52192, type: 3}
   m_TargetCameraAlpha: 1
   m_TargetCamera3DLayout: 0
@@ -3498,7 +3494,7 @@ VideoPlayer:
   m_EnabledAudioTracks: 01
   m_DirectAudioMutes: 00
   m_ControlledAudioTrackCount: 1
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_SkipOnDrop: 1
   m_Looping: 1
   m_WaitForFirstFrame: 0
@@ -3795,6 +3791,7 @@ MonoBehaviour:
   - {fileID: 8679740167614472580, guid: 9987bf94e3b06b74aac886cdd96bb3a9, type: 3}
   skillItem: {fileID: 5840276398685749123, guid: b78570dd1699b5a47bf3e1b1ecf951f2, type: 3}
   timer: 0
+  forceTutorialLv1: 0
   collisionLayerMask:
     serializedVersion: 2
     m_Bits: 16
@@ -3830,7 +3827,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1469334865
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4447,17 +4444,10 @@ MonoBehaviour:
   isDeathHandling: 0
   bossPrefab: {fileID: 584396883}
   enemyPrefab: {fileID: 925417670}
-  eggPrefabs: []
-  coinPrefab: {fileID: 5921735339304343986, guid: ea88b9f31caf1724783f45465a917bb7, type: 3}
   currentBossIndex: 0
   currentEnemy: {fileID: 0}
-  bossHitCount: 0
-  eggDropCount: 0
-  eggHolders:
-  - {fileID: 505535606}
-  - {fileID: 490511965}
-  - {fileID: 1537141961}
   canSpawnItems: 1
+  lastHitTime: -10
 --- !u!1 &1670578328
 GameObject:
   m_ObjectHideFlags: 0
@@ -4827,7 +4817,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1802330909
 RectTransform:
   m_ObjectHideFlags: 0

@@ -5,26 +5,17 @@ public class BossManager : MonoBehaviour
 {
     public static BossManager instance;
 
-    public List<Sprite> bossSprites;        // BOSS 圖
-    public List<Sprite> enemySprites;       // 雜兵圖
+    public List<Sprite> bossSprites;        // BOSS 圖（順序＝Boss1~5，對應 BossMechanic 機制）
+    public List<Sprite> enemySprites;       // 雜兵圖（V2 已不用雜兵，保留欄位避免斷引用）
     public SpriteRenderer bossSpriteRenderer;
     public SpriteRenderer enemySpriteRenderer;
 
-    private Dictionary<string, float> bossHealth = new Dictionary<string, float>
-    {
-        {"Boss1", 400f},
-        {"Boss2", 450f},
-        {"Boss3", 550f},
-        {"Boss4", 700f},
-        {"Boss5", 900f}
-    };
+    // 履歷展示版正式血量：6 隻 Boss 約 15~20 分鐘完整流程。
+    private float[] bossHealth = { 300f, 450f, 600f, 800f, 1050f, 1400f };
 
-    private List<Sprite> selectedBosses = new List<Sprite>();
-    private float enemyHealth = 100f;
-    private int lastEnemyIndex = -1;
-
-    public int eggCount = 0;   // 數字在這裡維護
-    public int coinCount = 0;
+    // 各 Boss 語音（前 5 隻是貓，第 6 隻是倉鼠）
+    private static readonly string[] CatVoices = { "喵～", "喵喵～", "呼嚕嚕～", "喵嗚～", "喵？" };
+    private static readonly string[] HamsterVoices = { "啾啾～", "吱吱～", "啾？" };
 
     void Awake()
     {
@@ -36,26 +27,14 @@ public class BossManager : MonoBehaviour
 
     private void Start()
     {
-        // 一開始把目前數字丟給 UI（通常是 0）
-        if (UIManager.instance != null)
-        {
-            UIManager.instance.UpdateEggUI(eggCount);
-            UIManager.instance.UpdateCoinUI(coinCount);
-        }
     }
 
+    // V2：保留方法名給 BattleStageManager 呼叫；不再洗牌，Boss 依序對應機制
     public void InitializeBossCombinations()
     {
-        selectedBosses = new List<Sprite>(bossSprites);
-        for (int i = selectedBosses.Count - 1; i > 0; i--)
-        {
-            int randomIndex = Random.Range(0, i + 1);
-            Sprite temp = selectedBosses[i];
-            selectedBosses[i] = selectedBosses[randomIndex];
-            selectedBosses[randomIndex] = temp;
-        }
-
-        selectedBosses = selectedBosses.GetRange(0, Mathf.Min(5, selectedBosses.Count));
+        // 確保 AbilityManager / BossMechanic 單例在場（自舉）
+        var _ = AbilityManager.instance;
+        var __ = BossMechanic.instance;
     }
 
     public float CalculateDamage(int level)
@@ -66,106 +45,46 @@ public class BossManager : MonoBehaviour
             case 2: return 6f;
             case 3: return 12f;
             case 4: return 20f;
-            case 5: return 30f;
-            case 6: return 42f;
-            case 7: return 56f;
-            case 8: return 72f;
-            case 9: return 80f;
-            case 10: return 100f;
+            case 5: return 32f;
+            case 6: return 48f;
+            case 7: return 66f;
+            case 8: return 90f;
+            case 9: return 120f;
+            case 10: return 150f;
             default: return 0f;
         }
     }
 
-    // 掉落物邏輯：只算數字 + 回傳 Prefab，UI 交給 UIManager
-    public GameObject DetermineDropItem(ref int eggDropCount, GameObject[] eggPrefabs, GameObject coinPrefab, bool isBoss)
-    {
-        bool shouldDropEgg = false;
-
-        if (isBoss)
-        {
-            if (eggDropCount < 3)
-            {
-                switch (BattleStageManager.instance.currentBossIndex)
-                {
-                    case 0: shouldDropEgg = Random.value < 0.1f; break;
-                    case 1: shouldDropEgg = Random.value < 0.2f; break;
-                    case 2: shouldDropEgg = Random.value < 0.3f; break;
-                    case 3: shouldDropEgg = Random.value < 0.4f; break;
-                    case 4: shouldDropEgg = true; break;
-                }
-            }
-        }
-        else
-        {
-            shouldDropEgg = false;
-        }
-
-        if (shouldDropEgg)
-        {
-            eggDropCount++;
-            eggCount++;
-
-            // 通知 UI
-            if (UIManager.instance != null)
-                UIManager.instance.UpdateEggUI(eggCount);
-
-            int eggIndex = Random.Range(0, eggPrefabs.Length);
-
-            BattleStageManager.instance.eggHolders[eggCount - 1].SetActive(true);
-            BattleStageManager.instance.eggHolders[eggCount - 1].GetComponent<SpriteRenderer>().sprite =
-                BattleStageManager.instance.eggPrefabs[eggIndex].GetComponent<SpriteRenderer>().sprite;
-
-            return eggPrefabs[eggIndex];
-        }
-
-        // 金幣
-        coinCount++;
-        if (UIManager.instance != null)
-            UIManager.instance.UpdateCoinUI(coinCount);
-
-        return coinPrefab;
-    }
-
+    // V2：依 healthManager.currentBossIndex 生成「當前這隻」Boss（不在這裡自增 index）
     public void SetNextBossOrEnemy(BattleStageManager healthManager)
     {
-        float randomValue = Random.value;
+        int index = healthManager.currentBossIndex;
+        if (index < 0 || index >= bossHealth.Length) return;
 
-        if (randomValue < 0.5f)
-        {
-            // 雜兵
-            healthManager.bossPrefab.SetActive(false);
-            int selectedEnemyIndex = (lastEnemyIndex == 0) ? 1 : 0;
-            lastEnemyIndex = selectedEnemyIndex;
-
-            healthManager.maxHealth = enemyHealth;
-            healthManager.currentHealth = healthManager.maxHealth;
-
-            enemySpriteRenderer.sprite = enemySprites[selectedEnemyIndex];
-            healthManager.currentEnemy = healthManager.enemyPrefab;
-            healthManager.currentEnemy.SetActive(true);
-        }
-        else
-        {
-            // Boss
+        // 不再使用雜兵
+        if (healthManager.enemyPrefab != null)
             healthManager.enemyPrefab.SetActive(false);
 
-            if (healthManager.currentBossIndex < selectedBosses.Count)
-            {
-                Sprite bossSprite = selectedBosses[healthManager.currentBossIndex];
+        healthManager.maxHealth = bossHealth[index];
+        healthManager.currentHealth = healthManager.maxHealth;
 
-                string key = "Boss" + (healthManager.currentBossIndex + 1);
-                if (bossHealth.ContainsKey(key))
-                    healthManager.maxHealth = bossHealth[key];
+        if (bossSpriteRenderer != null && bossSprites != null && index < bossSprites.Count)
+            bossSpriteRenderer.sprite = bossSprites[index];
 
-                healthManager.currentHealth = healthManager.maxHealth;
-                healthManager.currentBossIndex++;
+        healthManager.currentEnemy = healthManager.bossPrefab;
 
-                bossSpriteRenderer.sprite = bossSprite;
-                healthManager.currentEnemy = healthManager.bossPrefab;
+        // Boss 登場影片已移除，保留簡短關卡開始卡片，避免進關前拖長不可操作時間。
 
-                VideoManager.instance.PlayAndStopVideo();
-                healthManager.currentEnemy.SetActive(true);
-            }
+        if (healthManager.bossPrefab != null)
+        {
+            healthManager.bossPrefab.SetActive(true);
+            // 掛上 idle 呼吸＋受擊動畫＋地面影＋語音（自動抓 SpriteRenderer，重啟用會刷新基準）
+            var juice = healthManager.bossPrefab.GetComponent<BossJuice>();
+            if (juice == null) juice = healthManager.bossPrefab.AddComponent<BossJuice>();
+            juice.voices = (index >= 5) ? HamsterVoices : CatVoices;
         }
+
+        // 啟動這隻 Boss 的盤面干擾機制
+        BossMechanic.instance.StartForBoss(index);
     }
 }

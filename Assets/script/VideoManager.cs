@@ -1,4 +1,3 @@
-﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.Video;
 
@@ -9,54 +8,34 @@ public class VideoManager : MonoBehaviour
     public GameObject video;          // 包住 VideoPlayer 的外層物件
     public VideoPlayer videoPlayer;
 
-    private const float PLAY_TIME =2;   // 播放 3 秒
-    private Coroutine stopRoutine;
+    public bool IsPlaying { get { return video != null && video.activeSelf; } }
 
     private void Awake()
     {
         instance = this;
-       
+        DisableLegacyVideo();
     }
 
     private void Start()
     {
-      
-        PlayAndStopVideo();
+        // 履歷展示版移除舊 Warning 影片過場；這個管理器只保留給場景引用不斷線。
     }
 
     public void PlayAndStopVideo()
     {
-        StartCoroutine(PrepareAndPlay());
+        DisableLegacyVideo();
     }
 
-    private IEnumerator PrepareAndPlay()
+    private void DisableLegacyVideo()
     {
-        // 停掉上一輪的計時
-        if (stopRoutine != null)
-            StopCoroutine(stopRoutine);
-
-        video.SetActive(true);
-
-        // 如果還沒載好 → Prepare 並等待
-        if (!videoPlayer.isPrepared)
+        if (videoPlayer != null)
         {
-            videoPlayer.Prepare();
-            yield return new WaitUntil(() => videoPlayer.isPrepared);
+            videoPlayer.playOnAwake = false;
+            videoPlayer.isLooping = false;
+            videoPlayer.Stop();
         }
 
-        // 從頭播放
-        videoPlayer.time = 0;
-        videoPlayer.Play();
-
-        // 開始倒數 3 秒
-        stopRoutine = StartCoroutine(StopAfterDelay(PLAY_TIME));
-    }
-
-    private IEnumerator StopAfterDelay(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-
-        videoPlayer.Stop();
-        video.SetActive(false);
+        if (video != null)
+            video.SetActive(false);
     }
 }
