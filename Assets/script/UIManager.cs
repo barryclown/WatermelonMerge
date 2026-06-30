@@ -230,24 +230,29 @@ public class UIManager : MonoBehaviour
         if (isWin)
         {
             RuntimeUI.MakeTitle(panel.transform, "恭喜通關！", 76, RuntimeUI.Palette.Melon,
-                new Vector2(0.05f, 0.80f), new Vector2(0.95f, 0.91f));
+                new Vector2(0.05f, 0.82f), new Vector2(0.95f, 0.93f));
+
+            GameObject card = RuntimeUI.MakeCard(panel.transform,
+                new Vector2(0.10f, 0.20f), new Vector2(0.90f, 0.78f), new Color(1f, 0.985f, 0.94f, 0.96f));
 
             // 寵物英雄圖：優先用指定的結局圖（AI 生圖），否則退回合成鏈最高階寵物
             Sprite petSprite = endingPetSprite != null ? endingPetSprite : GetTopPetSprite();
             if (petSprite != null)
             {
-                GameObject img = RuntimeUI.NewRect("PetImage", panel.transform);
+                GameObject img = RuntimeUI.NewRect("PetImage", card.transform);
                 var rt = img.GetComponent<RectTransform>();
-                rt.anchorMin = new Vector2(0.26f, 0.44f); rt.anchorMax = new Vector2(0.74f, 0.76f);
+                rt.anchorMin = new Vector2(0.24f, 0.43f); rt.anchorMax = new Vector2(0.76f, 0.92f);
                 rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
                 var im = img.AddComponent<Image>();
                 im.sprite = petSprite; im.preserveAspect = true;
             }
 
-            RuntimeUI.MakeText(panel.transform, "恭喜你，你的寵物是最強的！", 42, FontStyle.Bold,
-                new Vector2(0.06f, 0.34f), new Vector2(0.94f, 0.43f));
-            RuntimeUI.MakeText(panel.transform, "總傷害：" + scoreStr, 34, FontStyle.Normal,
-                new Vector2(0.1f, 0.27f), new Vector2(0.9f, 0.33f));
+            Text winMsg = RuntimeUI.MakeText(card.transform, "恭喜你，你的寵物是最強的！", 42, FontStyle.Bold,
+                new Vector2(0.06f, 0.25f), new Vector2(0.94f, 0.38f));
+            winMsg.color = RuntimeUI.Palette.TextDark;
+            Text winScore = RuntimeUI.MakeText(card.transform, "總傷害：" + scoreStr, 34, FontStyle.Bold,
+                new Vector2(0.1f, 0.14f), new Vector2(0.9f, 0.23f));
+            winScore.color = RuntimeUI.Palette.TextDark;
         }
         else
         {
@@ -259,8 +264,9 @@ public class UIManager : MonoBehaviour
                 new Vector2(0.14f, 0.45f), new Vector2(0.86f, 0.52f));
         }
 
-        RuntimeUI.MakeText(panel.transform, "（按任意鍵 / 點擊　再來一局）", 28, FontStyle.Normal,
-            new Vector2(0.1f, 0.15f), new Vector2(0.9f, 0.22f));
+        RuntimeUI.MakeButton(panel.transform, "再來一局", 42,
+            new Vector2(0.27f, 0.08f), new Vector2(0.73f, 0.16f),
+            () => { resultShowing = false; Restart(); }, RuntimeUI.Palette.Rind);
     }
 
     private Sprite GetTopPetSprite()

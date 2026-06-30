@@ -50,8 +50,11 @@ public class DraftUI : MonoBehaviour
         RuntimeUI.MakeTitle(panel.transform, "選擇一個能力", 64, RuntimeUI.Palette.Melon,
             new Vector2(0.05f, 0.88f), new Vector2(0.95f, 0.96f));
         if (!string.IsNullOrEmpty(subtitle))
-            RuntimeUI.MakeText(panel.transform, subtitle, 38, FontStyle.Bold,
+        {
+            Text sub = RuntimeUI.MakeText(panel.transform, subtitle, 36, FontStyle.Bold,
                 new Vector2(0.05f, 0.82f), new Vector2(0.95f, 0.875f));
+            sub.color = RuntimeUI.Palette.TextDark;
+        }
 
         // 三張卡片直排（直式螢幕）
         int n = options.Count;
@@ -75,11 +78,35 @@ public class DraftUI : MonoBehaviour
         rt.anchorMax = new Vector2(0.90f, yMaxAnchor);
         rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
 
+        Color accent = AccentFor(id);
+
         Image cardBg = card.AddComponent<Image>();
         cardBg.sprite = RuntimeUI.RoundedSprite();
         cardBg.type = Image.Type.Sliced;
-        cardBg.color = RuntimeUI.Palette.CardWhite;
-        RuntimeUI.AddShadow(cardBg, new Color(0f, 0f, 0f, 0.18f), new Vector2(0f, -8f));
+        cardBg.color = new Color(1f, 0.985f, 0.94f, 0.98f);
+        RuntimeUI.AddShadow(cardBg, new Color(0f, 0f, 0f, 0.20f), new Vector2(0f, -9f));
+
+        GameObject header = RuntimeUI.NewRect("HeaderTint", card.transform);
+        RectTransform hrt = header.GetComponent<RectTransform>();
+        hrt.anchorMin = new Vector2(0f, 0.58f);
+        hrt.anchorMax = Vector2.one;
+        hrt.offsetMin = Vector2.zero; hrt.offsetMax = Vector2.zero;
+        Image headerBg = header.AddComponent<Image>();
+        headerBg.sprite = RuntimeUI.RoundedSprite();
+        headerBg.type = Image.Type.Sliced;
+        headerBg.color = new Color(accent.r, accent.g, accent.b, 0.16f);
+        headerBg.raycastTarget = false;
+
+        GameObject dot = RuntimeUI.NewRect("AccentDot", card.transform);
+        RectTransform drt = dot.GetComponent<RectTransform>();
+        drt.anchorMin = new Vector2(0.065f, 0.665f);
+        drt.anchorMax = new Vector2(0.155f, 0.845f);
+        drt.offsetMin = Vector2.zero; drt.offsetMax = Vector2.zero;
+        Image dotImg = dot.AddComponent<Image>();
+        dotImg.sprite = RuntimeUI.RoundedSprite();
+        dotImg.type = Image.Type.Sliced;
+        dotImg.color = accent;
+        dotImg.raycastTarget = false;
 
         Button btn = card.AddComponent<Button>();
         btn.targetGraphic = cardBg;
@@ -94,13 +121,36 @@ public class DraftUI : MonoBehaviour
 
         // 名稱（卡片上半）
         Text name = RuntimeUI.MakeText(card.transform, AbilityManager.NameOf(id), 46, FontStyle.Bold,
-            new Vector2(0.04f, 0.52f), new Vector2(0.96f, 0.95f));
-        name.color = RuntimeUI.Palette.Melon;
+            new Vector2(0.18f, 0.58f), new Vector2(0.94f, 0.92f));
+        name.alignment = TextAnchor.MiddleLeft;
+        name.color = RuntimeUI.Palette.TextDark;
 
         // 描述（卡片下半）
-        Text desc = RuntimeUI.MakeText(card.transform, AbilityManager.DescOf(id), 30, FontStyle.Normal,
-            new Vector2(0.06f, 0.06f), new Vector2(0.94f, 0.50f));
+        Text desc = RuntimeUI.MakeText(card.transform, AbilityManager.DescOf(id), 32, FontStyle.Bold,
+            new Vector2(0.08f, 0.10f), new Vector2(0.92f, 0.53f));
+        desc.alignment = TextAnchor.MiddleLeft;
+        desc.lineSpacing = 1.05f;
         desc.color = RuntimeUI.Palette.TextDark;
+    }
+
+    private Color AccentFor(AbilityId id)
+    {
+        switch (id)
+        {
+            case AbilityId.Heavy:
+            case AbilityId.MelonBurst:
+                return RuntimeUI.Palette.Melon;
+            case AbilityId.Bomber:
+            case AbilityId.Sweep:
+                return new Color(1f, 0.58f, 0.27f, 1f);
+            case AbilityId.Calm:
+            case AbilityId.LuckyStart:
+                return RuntimeUI.Palette.Rind;
+            case AbilityId.ChainMaster:
+                return new Color(0.48f, 0.62f, 1f, 1f);
+            default:
+                return RuntimeUI.Palette.Melon;
+        }
     }
 
     private void OnPick(AbilityId id)

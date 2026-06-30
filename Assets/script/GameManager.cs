@@ -44,7 +44,8 @@ public class GameManager : MonoBehaviour
 
     public static bool isDragging = false;
 
-    private int dropCount = 0;  // 累計投放數（給「炸彈手」每第 5 顆用）
+    private int dropCount = 0;  // 累計投放數（給「炸彈手」每第 N 顆用）
+    private const int BombEveryNthDrop = 20;  // 炸彈手：每投放第幾顆變炸彈（越大越稀有；5→9→20 持續弱化）
     public int DropCount => dropCount;  // 給新手引導偵測「已放下第一隻」
     public bool forceTutorialLv1 = false;  // 新手引導期間強制生成 Lv1，前兩顆必同款→必合成
 
@@ -76,8 +77,8 @@ public class GameManager : MonoBehaviour
                 timer = 2.5f;
 
                 dropCount++;
-                // 「炸彈手」能力：每投放第 5 顆變成炸彈果（落地清周圍）
-                if (AbilityManager.instance != null && AbilityManager.instance.bomber && dropCount % 5 == 0)
+                // 「炸彈手」能力：每投放第 N 顆變成炸彈果（落地清周圍）
+                if (AbilityManager.instance != null && AbilityManager.instance.bomber && dropCount % BombEveryNthDrop == 0)
                 {
                     Watermelon w = instantiatedItem.GetComponent<Watermelon>();
                     if (w != null) w.isBomb = true;

@@ -44,18 +44,18 @@ public class TutorialManager : MonoBehaviour
         Canvas c = RuntimeUI.CreateOverlayCanvas("TutorialCanvas", 950);
         GameObject canvasGo = c.gameObject;
 
-        // 提示泡（深棕底白字，不擋點擊）— 放上方，不蓋生成區
+        // 提示泡（不擋點擊）— 放在盤面下方，避免壓住 Boss / 血條。
         GameObject hint = RuntimeUI.NewRect("Hint", c.transform);
         var hrt = hint.GetComponent<RectTransform>();
-        hrt.anchorMin = new Vector2(0.09f, 0.785f); hrt.anchorMax = new Vector2(0.91f, 0.88f);
+        hrt.anchorMin = new Vector2(0.08f, 0.265f); hrt.anchorMax = new Vector2(0.92f, 0.345f);
         hrt.offsetMin = Vector2.zero; hrt.offsetMax = Vector2.zero;
         Image hb = hint.AddComponent<Image>();
         hb.sprite = RuntimeUI.RoundedSprite(); hb.type = Image.Type.Sliced;
-        hb.color = new Color(RuntimeUI.Palette.SeedBrown.r, RuntimeUI.Palette.SeedBrown.g, RuntimeUI.Palette.SeedBrown.b, 0.84f);
+        hb.color = new Color(1f, 0.985f, 0.94f, 0.95f);
         hb.raycastTarget = false;
         RuntimeUI.AddShadow(hb, new Color(0f, 0f, 0f, 0.25f), new Vector2(0f, -5f));
-        Text hintText = RuntimeUI.MakeText(hint.transform, "", 34, FontStyle.Bold, Vector2.zero, Vector2.one);
-        hintText.color = Color.white;
+        Text hintText = RuntimeUI.MakeText(hint.transform, "", 32, FontStyle.Bold, Vector2.zero, Vector2.one);
+        hintText.color = RuntimeUI.Palette.TextDark;
         hintText.raycastTarget = false;
 
         // 世界空間「生成區」虛線框高亮（取代意義不明的紅塊）
@@ -64,12 +64,16 @@ public class TutorialManager : MonoBehaviour
         if (gm != null)
         {
             GameObject zone = new GameObject("TutorialZone");
-            zone.transform.position = new Vector3((gm.xMin + gm.xMax) * 0.5f, (gm.yMin + gm.yMax) * 0.5f, 0f);
+            float zxMin = gm.xMin + 0.35f;
+            float zxMax = gm.xMax - 0.35f;
+            float zyMin = gm.yMin + 0.20f;
+            float zyMax = gm.yMax - 0.85f;
+            zone.transform.position = new Vector3((zxMin + zxMax) * 0.5f, (zyMin + zyMax) * 0.5f, 0f);
             zoneSr = zone.AddComponent<SpriteRenderer>();
             zoneSr.sprite = RuntimeUI.DashedRectSprite(256, 224, 6, 14);
-            zoneSr.color = RuntimeUI.Palette.Melon;
-            zoneSr.sortingOrder = 100;
-            float zw = gm.xMax - gm.xMin, zh = gm.yMax - gm.yMin;
+            zoneSr.color = new Color(RuntimeUI.Palette.Melon.r, RuntimeUI.Palette.Melon.g, RuntimeUI.Palette.Melon.b, 0.46f);
+            zoneSr.sortingOrder = 35;
+            float zw = zxMax - zxMin, zh = zyMax - zyMin;
             zone.transform.localScale = new Vector3(zw / 4f, zh / 3.5f, 1f);
         }
 
@@ -88,7 +92,7 @@ public class TutorialManager : MonoBehaviour
             if (zoneSr != null)
             {
                 Color zc = zoneSr.color;
-                zc.a = 0.55f + 0.45f * Mathf.Abs(Mathf.Sin(t * 4f));
+                zc.a = 0.24f + 0.26f * Mathf.Abs(Mathf.Sin(t * 4f));
                 zoneSr.color = zc;
             }
             yield return null;

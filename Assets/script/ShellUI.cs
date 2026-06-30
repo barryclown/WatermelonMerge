@@ -115,18 +115,18 @@ public class ShellUI : MonoBehaviour
 
         GameObject panel = RuntimeUI.MakeFullscreenPanel(c.transform, RuntimeUI.Palette.DimBack);
 
-        // 圓角卡片裝暫停選單
+        // 圓角卡片裝暫停選單：底色提高不透明度，避免背景透太多造成糊感。
         RuntimeUI.MakeCard(panel.transform,
-            new Vector2(0.18f, 0.30f), new Vector2(0.82f, 0.70f), RuntimeUI.Palette.CardWhite);
+            new Vector2(0.15f, 0.31f), new Vector2(0.85f, 0.69f), new Color(1f, 0.985f, 0.94f, 0.98f));
 
         RuntimeUI.MakeTitle(panel.transform, "暫停", 60, RuntimeUI.Palette.Melon,
-            new Vector2(0.2f, 0.60f), new Vector2(0.8f, 0.69f));
+            new Vector2(0.2f, 0.595f), new Vector2(0.8f, 0.675f));
 
         RuntimeUI.MakeButton(panel.transform, "繼續遊戲", 44,
-            new Vector2(0.27f, 0.47f), new Vector2(0.73f, 0.56f), ResumeGame, RuntimeUI.Palette.Rind);
+            new Vector2(0.24f, 0.47f), new Vector2(0.76f, 0.56f), ResumeGame, RuntimeUI.Palette.Rind);
 
         RuntimeUI.MakeButton(panel.transform, "回主菜單", 44,
-            new Vector2(0.27f, 0.34f), new Vector2(0.73f, 0.43f), BackToMenu, RuntimeUI.Palette.Melon);
+            new Vector2(0.24f, 0.34f), new Vector2(0.76f, 0.43f), BackToMenu, RuntimeUI.Palette.Melon);
     }
 
     private void ResumeGame()

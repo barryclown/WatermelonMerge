@@ -19,7 +19,7 @@ public static class RuntimeUI
         public static readonly Color Melon     = Hex(0xFF6B7A); // 主題粉紅（主行動色）
         public static readonly Color Rind      = Hex(0x6FBF73); // 草綠（次行動色）
         public static readonly Color SeedBrown = Hex(0x3A2E2A); // 籽棕（描邊/陰影）
-        public static readonly Color TextDark  = Hex(0x4A3B33); // 暖深棕（淺底文字）
+        public static readonly Color TextDark  = Hex(0x2F241F); // 暖深棕（淺底文字，手機尺寸優先可讀性）
         public static readonly Color CardWhite = new Color(1f, 0.99f, 0.96f, 0.92f); // 卡片底
         public static readonly Color DimBack   = new Color(0.20f, 0.13f, 0.12f, 0.55f); // 半透明遮罩
     }
@@ -54,7 +54,12 @@ public static class RuntimeUI
 
     // 一次把所有會用到的字、所有尺寸/樣式預熱進動態字型圖集，
     // 避免之後設定文字時觸發圖集重建、把先前建立的文字 mesh 弄壞（大標題/BOSS 變方塊的根因）。
-    private static readonly int[] PrewarmSizes = { 26, 30, 38, 40, 46, 54, 60, 64, 72, 84 };
+    // 內文／標籤尺寸：烤完整字集（含能力名稱/描述等任意內容）
+    private static readonly int[] ContentSizes = { 30, 32, 34, 36, 38, 42, 44, 46 };
+    // 標題／按鈕／HUD 大字尺寸：只顯示固定短字；大字 glyph 很吃 atlas，
+    // 整個字集 × 大尺寸會撐爆 4096 動態字型貼圖，故大字只烤標題字集。
+    private static readonly int[] TitleSizes = { 54, 58, 60, 64, 74, 76, 84, 92 };
+    private const string TitleChars = "第關開始！遊戲寵物養成語恭喜通失敗了…選擇一個能力暫停繼續回主菜單再來局知道爆頂出總傷害按任意鍵點擊　 /0123456789：（）、，。";
     public static void Prewarm(Font f)
     {
         if (f == null) return;
@@ -72,10 +77,15 @@ public static class RuntimeUI
         // 玩中學引導句＋Boss 出場台詞泡用字
         sb.Append("拖隻寶貝下來放在這裡再樣讓牠們相撞合成太棒了就是攻擊把頭目打倒玩具大放送搖站得穩嗎一波想中我沒那麼簡單全力爆發啦點擊區域生球");
         string chars = sb.ToString();
-        foreach (int s in PrewarmSizes)
+        foreach (int s in ContentSizes)
         {
             f.RequestCharactersInTexture(chars, s, FontStyle.Normal);
             f.RequestCharactersInTexture(chars, s, FontStyle.Bold);
+        }
+        foreach (int s in TitleSizes)
+        {
+            f.RequestCharactersInTexture(TitleChars, s, FontStyle.Normal);
+            f.RequestCharactersInTexture(TitleChars, s, FontStyle.Bold);
         }
     }
 
@@ -259,15 +269,14 @@ public static class RuntimeUI
         return t;
     }
 
-    // 大標題：粗體＋厚白描邊＋深色投影（蠟筆貼紙感）
+    // 大標題：粗體＋白描邊＋柔和投影（貼紙感，但避免中文邊緣髒掉）
     public static Text MakeTitle(Transform parent, string content, int fontSize, Color faceColor,
                                  Vector2 anchorMin, Vector2 anchorMax)
     {
         Text t = MakeText(parent, content, fontSize, FontStyle.Bold, anchorMin, anchorMax);
         t.color = faceColor;
-        AddShadow(t, new Color(Palette.SeedBrown.r, Palette.SeedBrown.g, Palette.SeedBrown.b, 0.85f), new Vector2(0f, -6f));
-        AddOutline(t, Color.white, 4f);
-        AddOutline(t, new Color(Palette.SeedBrown.r, Palette.SeedBrown.g, Palette.SeedBrown.b, 0.9f), 6f);
+        AddOutline(t, Color.white, 3f);
+        AddShadow(t, new Color(Palette.SeedBrown.r, Palette.SeedBrown.g, Palette.SeedBrown.b, 0.58f), new Vector2(0f, -5f));
         return t;
     }
 
@@ -308,15 +317,15 @@ public static class RuntimeUI
         faceImg.type = Image.Type.Sliced;
         faceImg.color = baseColor;
 
-        // 頂部高光（gloss）＝糖果光澤
+        // 頂部高光（gloss）＝糖果光澤。保持很淡，避免看起來像空白輸入框。
         GameObject glossGo = NewRect("Gloss", faceGo.transform);
         RectTransform grt = glossGo.GetComponent<RectTransform>();
-        grt.anchorMin = new Vector2(0.07f, 0.50f); grt.anchorMax = new Vector2(0.93f, 0.90f);
+        grt.anchorMin = new Vector2(0.12f, 0.72f); grt.anchorMax = new Vector2(0.88f, 0.86f);
         grt.offsetMin = Vector2.zero; grt.offsetMax = Vector2.zero;
         Image glossImg = glossGo.AddComponent<Image>();
         glossImg.sprite = RoundedSprite();
         glossImg.type = Image.Type.Sliced;
-        glossImg.color = new Color(1f, 1f, 1f, 0.30f);
+        glossImg.color = new Color(1f, 1f, 1f, 0.14f);
         glossImg.raycastTarget = false;
 
         Button btn = go.AddComponent<Button>();
@@ -330,8 +339,8 @@ public static class RuntimeUI
 
         Text t = MakeText(faceGo.transform, label, fontSize, FontStyle.Bold, Vector2.zero, Vector2.one);
         t.color = Color.white;
-        AddShadow(t, new Color(Palette.SeedBrown.r, Palette.SeedBrown.g, Palette.SeedBrown.b, 0.6f), new Vector2(0f, -3f));
-        AddOutline(t, new Color(Palette.SeedBrown.r, Palette.SeedBrown.g, Palette.SeedBrown.b, 0.8f), 3f);
+        AddShadow(t, new Color(Palette.SeedBrown.r, Palette.SeedBrown.g, Palette.SeedBrown.b, 0.55f), new Vector2(0f, -3f));
+        AddOutline(t, new Color(Palette.SeedBrown.r, Palette.SeedBrown.g, Palette.SeedBrown.b, 0.55f), 2f);
 
         if (onClick != null) btn.onClick.AddListener(onClick);
         return btn;

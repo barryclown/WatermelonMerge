@@ -7,7 +7,7 @@ public enum AbilityId
 {
     Heavy,        // 重擊：合成傷害 +25%（可疊）
     ChainMaster,  // 連鎖大師：連鎖每段額外 +20% 傷害
-    Bomber,       // 炸彈手：每投放第 5 顆變炸彈，落地清小範圍
+    Bomber,       // 炸彈手：每投放第 20 顆變炸彈，落地清小範圍
     MelonBurst,   // 寵物大爆發：合成出高級寵物時清周圍一圈並追加傷害
     Ceiling,      // 加高天花板：爆頂線上移
     Calm,         // 沉著：爆頂判定 +3s
@@ -171,7 +171,7 @@ public class AbilityManager : MonoBehaviour
         {
             case AbilityId.Heavy: return "合成傷害 +25%（可疊加）";
             case AbilityId.ChainMaster: return "連鎖合成每多一段，傷害再 +20%";
-            case AbilityId.Bomber: return "每投放第 5 顆變炸彈，落地清掉周圍的玩具";
+            case AbilityId.Bomber: return "每投放第 20 顆變炸彈，落地清掉碰到的玩具並造成傷害";
             case AbilityId.MelonBurst: return "合成出高級玩具（第 6 級以上）時，炸開周圍一圈並重擊頭目";
             case AbilityId.Ceiling: return "把爆頂線往上抬，給你更多空間";
             case AbilityId.Calm: return "爆頂倒數 +3 秒，更多救場時間";

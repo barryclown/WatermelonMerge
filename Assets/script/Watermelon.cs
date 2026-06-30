@@ -31,6 +31,11 @@ public class Watermelon : MonoBehaviour
     // 「寵物大爆發」能力觸發門檻：合成出第 N 級以上才爆（初版可調；最高級 10 幾乎不可能達成，故降到做得到的高級）
     private const int MelonBurstLevel = 6;
 
+    // 「空氣牆」根治：兩顆同級玩具靜止後，就算 collider 差一點點沒接觸、或物理睡眠/合成中漏掉接觸事件，
+    // 也用持續的鄰近偵測補合成。判定距離＝兩顆世界半徑和 ×此容差（>1 = 貼著或差一點點縫也合，可調手感）。
+    private const float MergeGapTolerance = 1.12f;
+    private float nextProximityScan = 0f;
+
     private void Awake()
     {
         if (GameManager.Instance != null)
@@ -48,6 +53,26 @@ public class Watermelon : MonoBehaviour
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
         if (rb != null)
             rb.sleepMode = RigidbodySleepMode2D.NeverSleep;
+
+        ApplyVisualSnug();
+    }
+
+    // 視覺貼合：玩具圖有透明留白、碰撞器是規則圓/膠囊，靜止相切時兩張圖之間會露一條留白縫（空氣牆觀感）。
+    // 把整體放大 VisualSnugScale，同時把碰撞器尺寸同步縮小 → 世界碰撞大小完全不變
+    //（物理堆疊／爆頂平衡不動、合成判定距離不變），純粹讓圖略放大蓋掉留白縫。所有等級所有玩具一致生效。
+    private const float VisualSnugScale = 1.18f;
+    private bool snugApplied = false;
+    private void ApplyVisualSnug()
+    {
+        if (snugApplied) return;
+        snugApplied = true;
+        transform.localScale *= VisualSnugScale;
+        foreach (Collider2D col in GetComponents<Collider2D>())
+        {
+            if (col is CircleCollider2D cc) cc.radius /= VisualSnugScale;
+            else if (col is CapsuleCollider2D cap) cap.size /= VisualSnugScale;
+            else if (col is BoxCollider2D box) box.size /= VisualSnugScale;
+        }
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
@@ -136,6 +161,50 @@ public class Watermelon : MonoBehaviour
             && this.GetInstanceID() < otherWatermelon.GetInstanceID())
         {
             StartMerge(otherWatermelon);
+        }
+    }
+
+    // 持續鄰近合成偵測：不依賴物理接觸事件，落地後每 0.1s 掃一次鄰居，
+    // 只要同級且距離 ≤ 兩半徑和 ×容差 就合 → 根治「貼著卻不合」的空氣牆。
+    private void FixedUpdate()
+    {
+        if (isMerging || isBomb || !hasLanded) return;
+        if (Time.time < nextProximityScan) return;
+        nextProximityScan = Time.time + 0.1f;
+        TryProximityMerge();
+    }
+
+    // 世界座標下的圓形碰撞半徑（含 lossyScale 縮放）
+    private float WorldColliderRadius()
+    {
+        Collider2D c = GetComponent<Collider2D>();
+        if (c == null) return 0f;
+        Vector2 e = c.bounds.extents;   // 世界座標 AABB；圓/膠囊/方形都通用
+        return Mathf.Min(e.x, e.y);
+    }
+
+    private void TryProximityMerge()
+    {
+        float myR = WorldColliderRadius();
+        if (myR <= 0f) return;
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, myR * 2.5f);
+        foreach (var h in hits)
+        {
+            if (h == null || h.gameObject == gameObject) continue;
+            Watermelon o = h.GetComponent<Watermelon>();
+            if (o == null || o.isMerging || o.isBomb || o.level != level) continue;
+
+            float oR = o.WorldColliderRadius();
+            if (oR <= 0f) continue;
+
+            float dist = Vector2.Distance(transform.position, o.transform.position);
+            if (dist <= (myR + oR) * MergeGapTolerance)
+            {
+                if (GetInstanceID() < o.GetInstanceID()) StartMerge(o);
+                else o.StartMerge(this);
+                return;
+            }
         }
     }
 
@@ -275,7 +344,10 @@ public class Watermelon : MonoBehaviour
         }
     }
 
-    // 炸彈果爆炸：清掉周圍一圈果，每清一顆對 Boss 造成傷害
+    // 炸彈每清掉一顆「碰到的」玩具造成的傷害（可調）
+    private const float BombDamagePerToy = 12f;
+
+    // 炸彈果爆炸：不用魔術半徑，改成清掉「正貼著炸彈」的每一顆玩具，每清一顆對 Boss 造成傷害。
     private void Explode()
     {
         if (exploded) return;
@@ -284,22 +356,28 @@ public class Watermelon : MonoBehaviour
 
         if (SoundManager.Instance != null) SoundManager.Instance.PlayFX(1);
 
-        float radius = 1.8f;
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius);
+        // 接觸範圍＝炸彈自己的碰撞半徑 ×一點點餘裕（不是魔術數字）→ 只清正貼著它的玩具。
+        float reach = WorldColliderRadius() * 1.1f;
         int cleared = 0;
-        foreach (var h in hits)
+        if (reach > 0f)
         {
-            if (h == null) continue;
-            Watermelon w = h.GetComponent<Watermelon>();
-            if (w != null && w != this)
+            Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, reach);
+            var seen = new System.Collections.Generic.HashSet<Watermelon>();
+            foreach (var h in hits)
             {
-                cleared++;
-                Destroy(w.gameObject);
+                if (h == null) continue;
+                Watermelon w = h.GetComponent<Watermelon>();
+                if (w != null && w != this && !w.isBomb && seen.Add(w))
+                {
+                    cleared++;
+                    Destroy(w.gameObject);
+                }
             }
         }
 
-        if (BattleStageManager.instance != null && BattleStageManager.instance.currentEnemy != null)
-            BattleStageManager.instance.TakeRawDamage(20f + cleared * 10f, BattleStageManager.instance.currentEnemy.transform.position);
+        // 碰到的每一顆都貢獻傷害；完全沒碰到就只是消掉自己、不造成傷害
+        if (cleared > 0 && BattleStageManager.instance != null && BattleStageManager.instance.currentEnemy != null)
+            BattleStageManager.instance.TakeRawDamage(cleared * BombDamagePerToy, BattleStageManager.instance.currentEnemy.transform.position);
 
         Destroy(gameObject);
     }
@@ -334,35 +412,11 @@ public class Watermelon : MonoBehaviour
         }
     }
 
+    // 合成後檢查能不能再連鎖：直接走精準的鄰近偵測（與 FixedUpdate 同一套，圓/膠囊通用）
     public void CheckForMerge()
     {
         if (isMerging)
             return;
-
-        CircleCollider2D circle = GetComponent<CircleCollider2D>();
-        if (circle == null)
-            return;
-
-        // 用「世界半徑」(含 lossyScale 縮放) 再加一點餘裕，確保剛好貼著的同級大果也偵測得到。
-        // 原本只用 circle.radius(本地半徑)，若大果是靠放大 localScale 變大，偵測範圍會偏小而漏掉鄰居。
-        float worldRadius = circle.radius * Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.y));
-        Collider2D[] hitColliders = Physics2D.OverlapCircleAll(transform.position, worldRadius * 1.2f);
-
-        foreach (var hitCollider in hitColliders)
-        {
-            if (hitCollider == null || hitCollider.gameObject == gameObject)
-                continue;
-
-            Watermelon otherWatermelon = hitCollider.GetComponent<Watermelon>();
-            if (otherWatermelon != null && !otherWatermelon.isMerging && otherWatermelon.level == level)
-            {
-                // 一樣用 InstanceID 擋雙重觸發
-                if (this.GetInstanceID() < otherWatermelon.GetInstanceID())
-                {
-                    StartMerge(otherWatermelon);
-                }
-                break;
-            }
-        }
+        TryProximityMerge();
     }
 }
