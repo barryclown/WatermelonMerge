@@ -244,7 +244,7 @@ public class UIManager : MonoBehaviour
                 im.sprite = petSprite; im.preserveAspect = true;
             }
 
-            RuntimeUI.MakeText(panel.transform, "恭喜你，你的玩具是最強的！", 42, FontStyle.Bold,
+            RuntimeUI.MakeText(panel.transform, "恭喜你，你的寵物是最強的！", 42, FontStyle.Bold,
                 new Vector2(0.06f, 0.34f), new Vector2(0.94f, 0.43f));
             RuntimeUI.MakeText(panel.transform, "總傷害：" + scoreStr, 34, FontStyle.Normal,
                 new Vector2(0.1f, 0.27f), new Vector2(0.9f, 0.33f));
@@ -253,7 +253,7 @@ public class UIManager : MonoBehaviour
         {
             RuntimeUI.MakeCard(panel.transform,
                 new Vector2(0.12f, 0.34f), new Vector2(0.88f, 0.66f), RuntimeUI.Palette.CardWhite);
-            RuntimeUI.MakeTitle(panel.transform, "玩具被擠出去了…", 54, RuntimeUI.Palette.Melon,
+            RuntimeUI.MakeTitle(panel.transform, "寵物失敗了…", 54, RuntimeUI.Palette.Melon,
                 new Vector2(0.14f, 0.54f), new Vector2(0.86f, 0.63f));
             RuntimeUI.MakeText(panel.transform, "總傷害：" + scoreStr, 36, FontStyle.Bold,
                 new Vector2(0.14f, 0.45f), new Vector2(0.86f, 0.52f));
