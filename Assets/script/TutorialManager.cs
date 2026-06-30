@@ -79,8 +79,10 @@ public class TutorialManager : MonoBehaviour
         float t = 0f;
 
         // Step 1：點擊生成區，生成第一隻
-        hintText.text = "點擊這個區域，生成寵物球！";
-        while (GameManager.Instance == null || GameManager.Instance.DropCount < 1)
+        hintText.text = "點擊這個區域，生成玩具球！";
+        // 要等玩家「確實生成並放開」第一隻才進下一步：DropCount 在按下滑鼠當下就 +1，
+        // 若只看 DropCount，會在玩家還握著第一隻沒放開時就跳「再放一隻」造成混亂。
+        while (GameManager.Instance == null || GameManager.Instance.DropCount < 1 || GameManager.isDragging)
         {
             t += Time.deltaTime;
             if (zoneSr != null)
@@ -107,7 +109,7 @@ public class TutorialManager : MonoBehaviour
 
         // Step 2：再放一隻同款，讓牠們相撞合成（不改）
         int startMerges = Watermelon.TotalMerges;
-        hintText.text = "再放一隻一樣的，讓牠們相撞合成！";
+        hintText.text = "再放一顆一樣的，相撞就會合成！";
         while (Watermelon.TotalMerges <= startMerges)
             yield return null;
 

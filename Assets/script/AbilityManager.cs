@@ -156,7 +156,7 @@ public class AbilityManager : MonoBehaviour
             case AbilityId.Heavy: return "重擊";
             case AbilityId.ChainMaster: return "連鎖大師";
             case AbilityId.Bomber: return "炸彈手";
-            case AbilityId.MelonBurst: return "寵物大爆發";
+            case AbilityId.MelonBurst: return "玩具大爆發";
             case AbilityId.Ceiling: return "加高天花板";
             case AbilityId.Calm: return "沉著";
             case AbilityId.LuckyStart: return "好運起手";
@@ -171,12 +171,12 @@ public class AbilityManager : MonoBehaviour
         {
             case AbilityId.Heavy: return "合成傷害 +25%（可疊加）";
             case AbilityId.ChainMaster: return "連鎖合成每多一段，傷害再 +20%";
-            case AbilityId.Bomber: return "每投放第 5 隻變炸彈，落地清掉周圍的寵物";
-            case AbilityId.MelonBurst: return "合成出高級寵物（第 6 級以上）時，炸開周圍一圈並重擊頭目";
+            case AbilityId.Bomber: return "每投放第 5 顆變炸彈，落地清掉周圍的玩具";
+            case AbilityId.MelonBurst: return "合成出高級玩具（第 6 級以上）時，炸開周圍一圈並重擊頭目";
             case AbilityId.Ceiling: return "把爆頂線往上抬，給你更多空間";
             case AbilityId.Calm: return "爆頂倒數 +3 秒，更多救場時間";
-            case AbilityId.LuckyStart: return "投放更容易出現高級寵物";
-            case AbilityId.Sweep: return "立刻清掉場上所有最小的寵物";
+            case AbilityId.LuckyStart: return "投放更容易出現高級玩具";
+            case AbilityId.Sweep: return "立刻清掉場上所有最小的玩具";
             default: return "";
         }
     }

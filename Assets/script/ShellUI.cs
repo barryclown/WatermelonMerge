@@ -27,9 +27,9 @@ public class ShellUI : MonoBehaviour
 
     private const string TutorialText =
         "玩法\n\n" +
-        "- 拖動生成的寵物到想要的位置放開\n" +
-        "- 兩隻同款寵物相撞會合成，並攻擊頭目\n" +
-        "- 寵物堆超過頂線太久會爆出局\n" +
+        "- 拖動生成的玩具到想要的位置放開\n" +
+        "- 兩顆同款玩具相撞會合成，並攻擊頭目\n" +
+        "- 玩具堆超過頂線太久會爆出局\n" +
         "- 打倒頭目後三選一強化，盤面會延續到下一關";
 
     private void Awake()
