@@ -12,6 +12,10 @@ public class Watermelon : MonoBehaviour
    
     [HideInInspector] public bool isMerging = false;
 
+    // 是否已落地（碰到牆/地或其他果）。地震(ShakeBoard)只影響已落地的果，
+    // 還在空中掉落或玩家手上沒放開的不受影響，避免看起來像 bug。
+    [HideInInspector] public bool hasLanded = false;
+
     // Boss 丟的垃圾果（死亡時清除）；炸彈手能力生成的炸彈果
     [HideInInspector] public bool isJunk = false;
     [HideInInspector] public bool isBomb = false;
@@ -37,7 +41,13 @@ public class Watermelon : MonoBehaviour
         {
             Debug.LogError("GameManager Instance is null!");
         }
-       
+
+        // 防「空氣牆」：果子靜止後 Rigidbody 會進入睡眠，睡眠中不再觸發 OnCollisionStay2D，
+        // 導致兩顆同級果貼在一起卻永遠不合成。關閉睡眠讓持續接觸照常觸發合成檢查
+        // （場上果子有數量上限，這點成本可忽略）。
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+            rb.sleepMode = RigidbodySleepMode2D.NeverSleep;
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
@@ -50,6 +60,10 @@ public class Watermelon : MonoBehaviour
             return;
 
         GameObject otherObj = collision.gameObject;
+
+        // 碰到牆/地或其他果 = 已進到容器堆疊裡 → 標記已落地（地震只影響已落地的果）
+        if (otherObj.CompareTag("Wall") || otherObj.GetComponent<Watermelon>() != null)
+            hasLanded = true;
 
         // 炸彈果：第一次撞到牆或其他果就爆炸（清周圍，不合成）
         if (isBomb && !exploded)
@@ -94,6 +108,34 @@ public class Watermelon : MonoBehaviour
         {
             // 不同等級就單純碰撞音效
             PlayHitSound();
+        }
+    }
+
+    // 持續接觸時的合成補檢：OnCollisionEnter2D 只在「第一次接觸」觸發，若兩顆同級果在其中一顆
+    // 還在合成中(isMerging)時相撞、之後雙雙靜止貼著，就再也不會有新的 Enter → 形成「空氣牆」
+    // 永不合成（大顆果靜止貼合特別容易遇到）。OnCollisionStay2D 在持續接觸時每幀觸發，補上缺口。
+    private float lastStayMergeCheck = -1f;
+    private void OnCollisionStay2D(Collision2D collision)
+    {
+        if (BattleStageManager.instance != null && BattleStageManager.instance.currentHealth <= 0)
+            return;
+        if (isMerging || isBomb)
+            return;
+
+        // 輕量節流：靜止接觸每物理幀都會進來，這裡同一顆最多每 0.1s 檢一次
+        if (Time.time - lastStayMergeCheck < 0.1f)
+            return;
+        lastStayMergeCheck = Time.time;
+
+        Watermelon otherWatermelon = collision.gameObject.GetComponent<Watermelon>();
+        if (otherWatermelon == null || otherWatermelon.isMerging)
+            return;
+
+        // 同等級才合成，並用 InstanceID 擋掉雙方同時開合成（與 OnCollisionEnter2D 一致）
+        if (otherWatermelon.level == this.level
+            && this.GetInstanceID() < otherWatermelon.GetInstanceID())
+        {
+            StartMerge(otherWatermelon);
         }
     }
 
@@ -199,6 +241,7 @@ public class Watermelon : MonoBehaviour
                 GameObject newWatermelon = Instantiate(nextPrefab, mergePosition, Quaternion.identity);
                 Watermelon newWatermelonScript = newWatermelon.GetComponent<Watermelon>();
                 newWatermelonScript.level = newLevel;
+                newWatermelonScript.hasLanded = true;   // 合成出來的果直接視為已落地（生在堆疊中）
 
                 Collider2D newCollider = newWatermelon.GetComponent<Collider2D>();
                 if (newCollider != null) newCollider.enabled = true;
@@ -300,7 +343,10 @@ public class Watermelon : MonoBehaviour
         if (circle == null)
             return;
 
-        Collider2D[] hitColliders = Physics2D.OverlapCircleAll(transform.position, circle.radius);
+        // 用「世界半徑」(含 lossyScale 縮放) 再加一點餘裕，確保剛好貼著的同級大果也偵測得到。
+        // 原本只用 circle.radius(本地半徑)，若大果是靠放大 localScale 變大，偵測範圍會偏小而漏掉鄰居。
+        float worldRadius = circle.radius * Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.y));
+        Collider2D[] hitColliders = Physics2D.OverlapCircleAll(transform.position, worldRadius * 1.2f);
 
         foreach (var hitCollider in hitColliders)
         {

@@ -74,10 +74,12 @@ public class AbilityManager : MonoBehaviour
 
     // ===== 抽牌 =====
     // 從能力池抽 3 張（不重複）。盤面擁擠時保證至少 1 張「清場/生存」類（橡皮筋防螺旋）。
+    // 「加高天花板」(Ceiling) 已從抽牌池移除，不再提供給玩家抽。
+    // enum / Apply / EndTrigger 的上移機制保留不動，避免牽動其他系統，只是永遠不會被抽到。
     private static readonly AbilityId[] AllAbilities =
     {
         AbilityId.Heavy, AbilityId.ChainMaster, AbilityId.Bomber, AbilityId.MelonBurst,
-        AbilityId.Ceiling, AbilityId.Calm, AbilityId.LuckyStart, AbilityId.Sweep
+        AbilityId.Calm, AbilityId.LuckyStart, AbilityId.Sweep
     };
     private static readonly AbilityId[] SurvivalAbilities =
     {

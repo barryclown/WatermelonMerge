@@ -47,16 +47,20 @@ public class BossMechanic : MonoBehaviour
         if (EndTrigger.instance != null) EndTrigger.instance.ClearTemporaryLower();
     }
 
-    // 累積式（6 隻，第 1 隻純教學）：每隻 Boss = 前面所有機制 ＋ 一個新的，越後面越兇。
-    //  B1 無 → B2 丟玩具 → B3 +晃盤 → B4 +玩具波 → B5 +閃避(被動,在傷害結算) → B6 +二階段狂暴
+    // 累積式（6 隻，第 1 隻純教學）：每隻 Boss = 前面所有機制 ＋ 一個新的。
+    //  B1 無 → B2 丟玩具 → B3 +晃盤 → B4 +玩具波 → B5 +閃避(被動,在傷害結算) → B6 +一次回血(不狂暴)
+    //  難度刻意偏寬鬆：投放間隔不隨關卡變快，靠「機制種類累積」做出層次，而非時間壓力。
     private IEnumerator MechanicRoutine(int index)
     {
         // Boss1（index 0）＝純教學，完全無干擾，讓玩家先學會合成＝攻擊
         if (index < 1) yield break;
 
-        // 開場加壓：Boss2 起進場先丟一波入場玩具（關卡越後越多）
+        // 開場加壓：Boss2 起進場先丟一波入場玩具（份量放輕，不嚇人）
         yield return new WaitForSeconds(1.5f);
-        ThrowJunk(Mathf.Clamp(index, 1, 3), Mathf.Clamp(index, 1, 3));
+        if (index == 3)
+            ThrowJunkLevels(1, 2, 3);   // Boss4 開場固定掉「三個不同等級」的玩具
+        else
+            ThrowJunk(Mathf.Clamp(index, 1, 2), Mathf.Clamp(index, 1, 3));
 
         float junkT = 0f, shakeT = 0f, waveT = 0f;
 
@@ -66,25 +70,25 @@ public class BossMechanic : MonoBehaviour
             float dt = Time.deltaTime;
             var bs = BattleStageManager.instance;
             if (bs == null) continue;
-            bool enraged = boss5Enraged;   // 最終 Boss 二階段觸發後才狂暴（BattleStageManager 設旗標）
 
-            // (1) 丟玩具：Boss2 起都有，頻率隨關卡變快，狂暴再加倍
+            // (1) 丟玩具：Boss2 起都有。所有 Boss「固定同一間隔」，完全不隨關卡變快——
+            // 難度層次改靠機制種類累積（丟玩具→晃盤→玩具波→閃避→回血），不靠時間壓力。
             junkT += dt;
-            float junkInterval = Mathf.Max(4f, 13f - index * 1.7f) / (enraged ? 2f : 1f);
+            float junkInterval = 12f;   // 固定 12 秒，每隻 Boss 一致
             if (junkT >= junkInterval) { junkT = 0f; ThrowJunk(1, Mathf.Clamp(index, 1, 3)); }
 
-            // (2) 晃盤：Boss3 起，狂暴後更頻繁
+            // (2) 晃盤：Boss3 起，固定間隔（不再因狂暴加速）
             if (index >= 2)
             {
                 shakeT += dt;
-                if (shakeT >= (enraged ? 5f : 8f)) { shakeT = 0f; ShakeBoard(3.5f + index * 0.3f); }
+                if (shakeT >= 8f) { shakeT = 0f; ShakeBoard(3.5f + index * 0.3f); }
             }
 
-            // (3) 玩具波（額外整波）：Boss4 起
+            // (3) 玩具波（額外整波）：Boss4 起，間隔放寬、不更快
             if (index >= 3)
             {
                 waveT += dt;
-                if (waveT >= 10f) { waveT = 0f; ThrowJunk(2, 2); }
+                if (waveT >= 14f) { waveT = 0f; ThrowJunk(2, 2); }
             }
 
             // (Boss5 的閃避、Boss6 的二階段回血＝在 BattleStageManager 傷害結算裡處理)
@@ -98,16 +102,29 @@ public class BossMechanic : MonoBehaviour
         if (gm == null || gm.watermelonPrefabs == null || gm.watermelonPrefabs.Length == 0) return;
 
         for (int i = 0; i < count; i++)
-            StartCoroutine(TelegraphAndDrop(maxLevel));
+        {
+            int lvl = Mathf.Clamp(Random.Range(1, maxLevel + 1), 1, gm.watermelonPrefabs.Length);
+            StartCoroutine(TelegraphAndDrop(lvl));
+        }
     }
 
-    // 預告：在落點上方顯示警告圖、脈動閃爍約 1 秒＋音效，然後生成垃圾果落下
-    private IEnumerator TelegraphAndDrop(int maxLevel)
+    // 從頂端丟一組「指定等級」的垃圾果（用於 Boss4 開場：一次三個不同等級）
+    public void ThrowJunkLevels(params int[] levels)
+    {
+        var gm = GameManager.Instance;
+        if (gm == null || gm.watermelonPrefabs == null || gm.watermelonPrefabs.Length == 0) return;
+
+        foreach (int lvl in levels)
+            StartCoroutine(TelegraphAndDrop(Mathf.Clamp(lvl, 1, gm.watermelonPrefabs.Length)));
+    }
+
+    // 預告：在落點上方顯示警告圖、脈動閃爍約 1 秒＋音效，然後生成「指定等級」垃圾果落下
+    private IEnumerator TelegraphAndDrop(int lvl)
     {
         var gm = GameManager.Instance;
         if (gm == null || gm.watermelonPrefabs == null || gm.watermelonPrefabs.Length == 0) yield break;
 
-        int lvl = Mathf.Clamp(Random.Range(1, maxLevel + 1), 1, gm.watermelonPrefabs.Length);
+        lvl = Mathf.Clamp(lvl, 1, gm.watermelonPrefabs.Length);
         GameObject prefab = gm.watermelonPrefabs[lvl - 1];
         if (prefab == null) yield break;
 
@@ -188,13 +205,15 @@ public class BossMechanic : MonoBehaviour
         return go;
     }
 
-    // 對盤面所有水果施一次隨機水平衝量
+    // 對盤面「已落地」的水果施一次隨機水平衝量。
+    // 刻意排除：還在空中掉落的果（玩家丟的或 Boss 丟的）、玩家手上還沒放開的果、預測殘影——
+    // 這些被地震甩走會看起來像「空氣牆／鬼畜 bug」。只晃已經落在容器裡的，地震才合理。
     public void ShakeBoard(float force)
     {
         Watermelon[] all = FindObjectsOfType<Watermelon>();
         foreach (var w in all)
         {
-            if (w == null) continue;
+            if (w == null || !w.hasLanded) continue;   // 只晃已落地的果
             Rigidbody2D rb = w.GetComponent<Rigidbody2D>();
             if (rb != null && !rb.isKinematic)
                 rb.AddForce(new Vector2(Random.Range(-force, force), Random.Range(0f, force * 0.3f)), ForceMode2D.Impulse);

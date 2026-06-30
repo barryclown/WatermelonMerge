@@ -58,6 +58,8 @@ public class GameManager : MonoBehaviour
 
     private void HandleSpawnAndDrag()
     {
+        // 防呆：BattleStageManager 尚未就緒（非遊戲場景／初始化順序）時直接跳過，避免 NullReference
+        if (BattleStageManager.instance == null) return;
         if (!BattleStageManager.instance.canSpawnItems) return;
 
         Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);

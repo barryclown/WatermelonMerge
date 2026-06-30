@@ -109,13 +109,13 @@ public class BattleStageManager : MonoBehaviour
             else if (damageAmount >= 50f) FXManager.instance.Shake(0.22f, 0.20f);
         }
 
-        // Boss5 二階段：血量快見底時一次性回到 50%，並進入狂暴（擋在死亡判定前，大招也打不死它一次）
+        // 最終 Boss 二階段：血量快見底時一次性回到 50%（擋在死亡判定前，大招也打不死它一次）。
+        // 不再進入狂暴——Boss6 已累積前面所有機制，再加速會過難，保留「一次回血」就好。
         if (currentBossIndex >= TotalBosses - 1 && BossMechanic.instance != null
             && !BossMechanic.instance.boss5SecondWindUsed
             && currentHealth <= maxHealth * 0.15f)
         {
             BossMechanic.instance.boss5SecondWindUsed = true;
-            BossMechanic.instance.boss5Enraged = true;
             currentHealth = maxHealth * 0.5f;
             UpdateHealthUI();
             if (SoundManager.Instance != null) SoundManager.Instance.PlayFX(1);
@@ -222,10 +222,10 @@ public class BattleStageManager : MonoBehaviour
         switch (index)
         {
             case 1: return "玩具大放送～！";
-            case 2: return "搖搖～站得穩嗎？";
+            case 2: return "地震啦～站得穩嗎？";
             case 3: return "一大波玩具來囉！";
             case 4: return "想打中我？沒那麼簡單～";
-            case 5: return "我要全力爆發啦！";
+            case 5: return "我是最終BOSS！";
             default: return null;
         }
     }
