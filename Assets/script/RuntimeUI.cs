@@ -35,6 +35,11 @@ public static class RuntimeUI
         get
         {
             if (_cjk != null) return _cjk;
+#if UNITY_WEBGL
+            // WebGL 沙盒拿不到 OS 字型，改用隨包的裁剪版 Noto Sans TC（Assets/Resources/Fonts）
+            _cjk = Resources.Load<Font>("Fonts/NotoSansTCsub");
+            if (_cjk != null) { Prewarm(_cjk); return _cjk; }
+#endif
             string[] candidates = { "Microsoft JhengHei", "Microsoft YaHei", "PMingLiU", "MingLiU", "SimSun" };
             foreach (var n in candidates)
             {

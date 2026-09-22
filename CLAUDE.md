@@ -2,8 +2,10 @@
 
 > 本檔只列「可執行硬規則」。每條的**理由/原理**放在同層 `CLAUDE-rationale.md`（不自動載入）；
 > 需要時用 Read 查，平常不佔 token。標 `↳R` 者表示 rationale 有對應說明。
-> 標 `↳S` 者表示 `CLAUDE-setup.md`（同樣不自動載入）有對應的套件／場景／美術詳解，要做該類任務時才 Read。
+> 標 `↳S` 者表示 `CLAUDE-setup.md`（同樣不自動載入）有對應的套件／場景／美術／MCP 詳解，要做該類任務時才 Read。
 > 本範本以 **2D 為主軸**：3D 專屬規則會特別標「3D」，其餘 2D/3D 通用。
+> **動編輯器前先看十四（Unity MCP）**：這個專案有沒有 MCP 連線，決定三、十、十二、十三怎麼執行——
+> 有連線我能自己動場景與 Inspector 並驗證，沒連線只能改 `.cs` 並把驗證交回人類。
 
 ## 〇、專案分級（先判定）↳R
 - 小品/原型：可**省略** Service Locator 與全套 DI，直接 `GetComponent<T>()` + 輕量 `event`。
@@ -16,13 +18,17 @@
 ## 二、💰 Token 防護（最高指導原則）↳R
 1. 嚴禁無差別全域讀取，精準指定 `.cs` / `.md`。
 2. 不讀：`/Library/`、`/Temp/`、`/Obj/`、`/Logs/`、`/Builds/`、影音美術檔（`*.png/jpg/mp3/wav/fbx/obj/mat/anim/controller`）。
+   - **單張例外**：自己剛生成的圖要自評、或 MCP 截圖要比對視覺時，可以讀那一張。禁止的是整批掃美術資料夾。
 3. 輸出精簡，直接給可替換完整程式碼。
 > 註：上述 2 已由 `.claude/settings.json` 的 `permissions.deny` 硬性攔截，非僅靠自律。
 
 ## 三、⚠️ Unity 序列化檔（YAML）防護 ↳R
-- **寫入 = 絕對禁止**：`*.unity/*.prefab/*.asset/*.mat/*.controller/*.anim/*.meta`（會壞 GUID）。
+- **純文字編輯 = 絕對禁止**：`*.unity/*.prefab/*.asset/*.mat/*.controller/*.anim/*.meta`（會壞 GUID；已由 settings deny 硬擋 Edit/Write）。
 - **唯讀例外**：可用 grep 搜 GUID 確認引用（如刪檔前驗證沒被掛載）。
-- 掛載腳本/設 Inspector/建 Prefab：一律「具體指示人類」在編輯器手動完成。
+- **要改場景／Prefab／Inspector 時走這兩條路之一**（↳十四）：
+  1. **有 MCP 連線**：走編輯器 API（`manage_gameobject` / `manage_components` / `manage_prefabs` / `execute_code`），由 Unity 自己序列化，GUID 安全 → 我直接做，做完驗證並回報。
+  2. **沒有 MCP**：我只出腳本 ＋ 具體步驟清單，「具體指示人類」在編輯器手動完成。
+- 判斷有沒有連線**要探測、不要假設**：工具列表看得到不代表 bridge 活著，先發一個唯讀呼叫（如 `read_console`）確認。
 
 ## 四、核心信念
 1. 增量 > 大爆炸。 2. 實用主義 > 教條。 3. 清晰意圖 > 巧妙代碼。 4. 組合 > 繼承。
@@ -35,10 +41,13 @@
 
 ## 六、🏗️ 架構
 1. 跨領域系統用 `ServiceLocator.Get<T>()`（`Start()` 取），避免 `Instance` 單例。↳R
-2. 同實體組件相依：`Awake()` 用 `GetComponent<T>()`，禁 `GameObject.Find()`。
-3. 靜態數值強制 ScriptableObject，不寫死、不存 JSON。
+2. 同實體組件相依：`Awake()` 用 `GetComponent<T>()`；`GameObject.Find()` 只在沒有別的路時用，別放進 `Update`。
+3. 靜態數值預設放 ScriptableObject（型別安全、Inspector 可編、能引用資產），別散在各腳本寫死。↳R
+   要「在 Unity 外面改」或「Build 之後還能改」時（數值試調、企劃／玩家自訂），才加一層 JSON 覆寫：
+   覆寫層只覆蓋它有寫到的欄位，預設值仍留在 SO／Inspector，JSON 刪掉行為要回到原狀。
 4. 跨系統用 `event Action`（零 GC），`OnDestroy()` 必 `-=`。
-5. Inspector 變數禁 `public`，用 `[SerializeField] private` + 唯讀屬性。
+5. 新寫的 Inspector 變數用 `[SerializeField] private` + 唯讀屬性，比 `public` 好管。↳R
+   既有專案已經大量 `public` 就不必為這條發動全域重構，改到哪順手收哪個。
 
 ## 七、⚡ Hot Path 零 GC（`Update`/`FixedUpdate`/`LateUpdate`）
 1. 禁 `new`：清單/陣列在 `Awake()` 預配置並重用（`.Clear()`）。
@@ -63,6 +72,7 @@
 1. 較大改動前在 `IMPLEMENTATION_PLAN.md` 拆 3–5 階段。
 2. 每次改完自查：零 GC 禁令、YAML 寫入防護。
 3. **改完必驗證才算完成**：能編譯就編譯、邏輯改動跑對應測試、UI/視覺改動截圖比對，並回報結果；不可改完即宣告完成。
+   有 MCP 時的三步驗證循環見十四；沒有 MCP 時要明說「我沒驗到，請你跑一次」，不准把「改完」講成「驗過」。
 4. 測試（Unity 需在 PATH 或用完整路徑）：
    - EditMode：`Unity -batchmode -runTests -testPlatform EditMode -projectPath . -testResults ./Logs/EditModeTests.xml -nographics -quit`
    - PlayMode：同上改 `-testPlatform PlayMode`。
@@ -75,7 +85,7 @@
 > 完整核心/選配表＋套件 id＋安裝法見 `CLAUDE-setup.md` 第一節。
 
 ## 十二、🗺️ 場景設定（場景怎麼弄）↳S
-1. 場景是 YAML（見三）：階層命名、掛元件、拉引用一律「具體指示 barry 在編輯器手動做」，我只出腳本＋步驟清單。
+1. 場景是 YAML（見三）：**有 MCP** 我用編輯器 API 直接建階層／掛元件／拉引用，做完回報；**沒有 MCP** 我只出腳本＋步驟清單，barry 手動落地。兩種情況都不准純文字編輯 `.unity`。
 2. **標準場景**：`MainMenu`（主菜單）、`Game`（主遊戲）；需要再加 `GameOver`/`Result`。
 3. **多關卡**：一關一場景，`Level_01`、`Level_02`…（兩位數補零）。
 4. **命名**：場景一律 PascalCase；關卡 `Level_數字`；全專案統一，別混大小寫。新場景要加進 Build Settings。
@@ -85,7 +95,7 @@
 ## 十三、🎨 美術總監（缺圖我來 ＋ 視覺顧問）↳S
 兩種模式並存：
 - **生成（執行）**：barry 說「缺圖你弄」＝全包到底：定風格→生圖→自評重生→去背/調尺寸/對齊 pivot→放進專案對應夾→做完叫 barry 試玩（不用截圖回報）。**只新增不覆蓋既有資產**，要替換先提案。
-- **顧問（建議）**：光影/材質/Shader/UI排版/構圖的具體參數、步驟、除錯清單由我出，barry 在 Inspector 落地（這些是 YAML，我不能寫）。
+- **顧問（建議）**：光影/材質/Shader/UI 排版/構圖的具體參數與除錯清單由我出。**有 MCP** 我自己在編輯器套上去、截圖比對，barry 只驗收；**沒有 MCP** 才退回我給步驟、barry 在 Inspector 落地。
 
 鐵則：
 1. 全專案守同一套**風格基準**（解析度/PPU/色板/外框/光源/視角），新資產對齊，禁混風格。
@@ -93,3 +103,29 @@
 3. **效能意識**：華麗方案必估 Draw Call/GPU 並給優化替代；撞上零 GC/架構硬規則時 **硬規則優先**。
 4. 以 **2D 為主軸**；3D 專屬（烘焙 GI/PBR/景深/焦距）標「3D 才用」。
 > 4 大領域職責、除錯清單、UI 動效（DoTween）、優先級見 `CLAUDE-setup.md` 第三節。
+
+## 十四、🔌 Unity MCP（有連線＝我能直接動編輯器）↳S
+1. **先探測，再動作**：要動編輯器之前先發一個唯讀呼叫（`read_console`）確認連線活著。工具看得到 ≠ bridge 連上；bridge 斷線時每個呼叫都會失敗。
+2. **開機順序**：先開 Unity（server 隨 Auto-Start 起來）→ 再開 AI session，MCP 才載入。順序反了就重連或重開 session，別在那邊硬試。
+3. **標準驗證循環（改完 C# 的三步）**：`read_console` 確認零編譯錯誤 → `manage_editor` 進 Play Mode 驗行為 → 視覺改動用 `execute_code` 跑 `ScreenCapture.CaptureScreenshot` 截圖比對。這就是十之3 在 Unity 的落地方式。
+4. **我能直接做**：場景／物件／元件／Prefab 操作、跑 Test Runner（`run_tests`）、執行菜單項、build。
+   **仍然留給人**：Asset Store 匯入、帳號授權與平台簽章、任何不可逆的刪除——這幾件即使有連線也先問。
+5. **沒有 MCP＝半盲模式**：只能改 `.cs`，沒 console、沒 Play Mode、沒截圖。此時把驗證責任明確講清楚交回 barry，不要宣稱已驗證（見十之3）。
+6. 場景改動前先確認**當前開的是哪個場景**，別在錯的場景上動手；動之前存檔點（git commit）比事後救便宜。
+> 三角色架構、Auto-Start 設定、工具清單、Roslyn 依賴、新機器一次性設定腳本、雷點見 `CLAUDE-setup.md` 第四節。
+
+---
+
+<!-- PROJECT-SPECIFIC -->
+## 專案特有
+> 本區由各專案自行維護：寫這個專案的 Unity 版本、MCP 現況、目錄慣例、特殊限制。
+> `install.py --force-claude` 更新範本時**會原樣保留這一區**（靠上面那行 `PROJECT-SPECIFIC` 標記辨識，別刪它）。
+
+### 環境
+- Unity **2022.3.62f2**（非 Unity 6，別用 6 專屬 API）
+- 類型：2D 合成（單畫面）→ Cinemachine 這類鏡頭選配用不到（見十一）
+- MCP：Auto-Start 是每使用者設定，本機已開 → 開專案即自動連線（見十四）
+- **Roslyn 是每專案一份**：本專案未確認是否已裝，要用 `compiler=roslyn` 前先檢查 `Assets/Plugins/Roslyn`。
+
+### 狀態
+- **已結案**（可玩 APK 已交付）。此後只做維護；動手前先確認是不是真的要改已交付的版本。

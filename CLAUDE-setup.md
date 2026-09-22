@@ -1,7 +1,11 @@
-# Unity 套件 / 場景 / 美術 設定詳解（CLAUDE-setup.md）
+# Unity 套件 / 場景 / 美術 / MCP 設定詳解（CLAUDE-setup.md）
 
-此檔**不自動載入**，平常不佔 context token。對應 `CLAUDE.md` 中標 `↳S` 的章節（十一套件、十二場景、十三美術）。
-要裝套件、設場景、做美術時才 Read 它。所有「設數值、掛腳本、改 import」凡涉及 `.unity/.prefab/.asset/.meta`（YAML）一律由 Claude 列步驟、barry 在編輯器手動完成（見 `CLAUDE.md` 三）。
+此檔**不自動載入**，平常不佔 context token。對應 `CLAUDE.md` 中標 `↳S` 的章節（十一套件、十二場景、十三美術、十四 MCP）。
+要裝套件、設場景、做美術、或動編輯器時才 Read 它。
+
+凡「設數值、掛腳本、建 Prefab、改 import」這類寫進 `.unity/.prefab/.asset/.meta`（YAML）的動作，走 `CLAUDE.md` 三的雙軌：
+**有 MCP 連線**→ Claude 用編輯器 API 自己做完並驗證；**沒有 MCP** → Claude 列步驟、barry 在編輯器手動完成。
+兩種情況都**不准**用文字編輯器直接改 YAML。第四節有連線判斷與工具對照。
 
 ---
 
@@ -43,8 +47,9 @@
 目標：給一套**簡單夠用**的標準場景與命名規範，不過度設計。小品/原型照這節就好；龐大的常駐管理器架構放最後「進階」當選配。
 
 ### 我能做 / 不能做
-- **能**：寫管理器/載入器腳本、給出「場景要放哪些物件」的清單、列出 barry 在 Inspector 要拉什麼引用/設什麼值的步驟。
-- **不能**：直接編輯 `.unity`（YAML，會壞 GUID）。場景搭建＝我交腳本＋步驟，barry 在編輯器落地。
+- **永遠能**：寫管理器/載入器腳本、給出「場景要放哪些物件」的清單、列出要拉什麼引用/設什麼值。
+- **有 MCP 連線時還能**：用 `manage_scene` 開/存場景、`manage_gameobject` 建物件與階層、`manage_components` 掛元件設欄位、`manage_prefabs` 做 Prefab——走編輯器 API，序列化由 Unity 負責，GUID 安全。做完 `read_console` 驗證再回報。
+- **永遠不能**：用文字編輯器直接改 `.unity`（YAML，會壞 GUID）。沒有 MCP 時場景搭建＝我交腳本＋步驟，barry 在編輯器落地。
 
 ### 標準場景（小品/原型的預設集）
 | 場景 | 用途 | 必要性 |
@@ -80,7 +85,7 @@
 
 ### 角色與兩種模式
 - **生成（執行）**：barry 說「缺圖你弄／美術你包」→ 全流程自走：定風格 → 生圖 → 自評重生 → 後製 → 放進專案 → 做完叫 barry 試玩（不必截圖回報，他自己進遊戲看）。產物是 PNG，我能寫。
-- **顧問（視覺總監）**：光影/材質/Shader/UI/構圖的具體參數、步驟、除錯清單由我出，**barry 在 Inspector 落地**——因為這些都寫在 `.unity/.mat/.asset/.meta`（YAML），照 `CLAUDE.md` 三我不能寫。我給指令，他是手。
+- **顧問（視覺總監）**：光影/材質/Shader/UI/構圖的具體參數、步驟、除錯清單由我出。落地看有沒有連線（`CLAUDE.md` 三的雙軌）：**有 MCP** → 我自己在編輯器套參數、截圖比對、回報前後差異，barry 只驗收；**沒有 MCP** → 我給步驟清單，barry 在 Inspector 落地，我不宣稱驗過。
 
 ### Output Rules（顧問模式鐵律）
 1. **拒絕空泛**：禁止「讓畫面更有層次」「加強對比」這種廢話。一律給 Unity 內具體操作步驟、組件名稱、建議參數值（例：Post-Processing 的 Bloom Intensity 設 1.2、Threshold 設 0.9）。
@@ -95,8 +100,9 @@
 - **生圖**：簡單圖示我直接出（SVG/程式生圖）；正式美術走既有工具（見記憶 `ai-image-gen-project`、`toolchain-reference`）——`Desktop\claude\ai-images\` 的 `gemini_web.py` 操控已登入 Gemini 網頁出圖，或 `gen_image.py`／API 備案。出圖後**自評**，不合格就重生。
 - **後製**：去背透明 PNG、裁切、統一尺寸、對齊 **pivot**（角色常 Bottom/Bottom-Center）；像素圖避免抗鋸齒糊邊。
 - **整合**：放 `Assets/Art/Sprites/{Characters,Environment,UI,FX}`；動畫幀連號 `run_00`、`run_01`…。
-- **Sprite import**（寫在 `.meta`＝YAML，我不能改 → 我列清單，barry 在 Inspector 套或設專案 Preset）：Texture Type=`Sprite (2D and UI)`、Sprite Mode=Single/Multiple、Pixels Per Unit 對齊風格、像素遊戲 Filter Mode=`Point` + Compression=`None` + 關 Mip Maps、Pivot 統一、多圖用 **Sprite Atlas** 省 draw call。
-- **鐵則**：**只新增不覆蓋**既有資產，要替換先提案（見 `game-art-full-autonomy`、`redo-preserve-content-propose-changes`）；美術檔二進位、其 `.meta` 是 YAML，受 `CLAUDE.md` 二、三防護：我不讀圖檔本體、不寫任何 `.meta`。
+- **Sprite import**：Texture Type=`Sprite (2D and UI)`、Sprite Mode=Single/Multiple、Pixels Per Unit 對齊風格、像素遊戲 Filter Mode=`Point` + Compression=`None` + 關 Mip Maps、Pivot 統一、多圖用 **Sprite Atlas** 省 draw call。
+  落地方式：**有 MCP** → 我用 `execute_code` 走 `TextureImporter` API 設定並 reimport（合法路徑，不是改 `.meta` 文字）；**沒有 MCP** → 我列清單，barry 在 Inspector 套或設專案 Preset。
+- **鐵則**：**只新增不覆蓋**既有資產，要替換先提案（見 `game-art-full-autonomy`、`redo-preserve-content-propose-changes`）。受 `CLAUDE.md` 二、三防護：不用文字編輯器寫任何 `.meta`、不整批掃美術資料夾；**但自己剛生成的圖要自評、或 MCP 截圖要比對時，讀那單張是允許的**（`CLAUDE.md` 二之2 例外）——不自評就等於把明顯不合格的圖丟給 barry。
 
 ### 顧問模式：四大領域職責（依 ROI 排序）
 優先級＝2D 獨立遊戲＋作品集導向的視覺 CP 值：**UI/排版 ＞ 光影/Post ＞ 構圖/鏡頭 ＞ 材質/Shader**。
@@ -122,3 +128,74 @@
 - Shader Graph 做溶解、流光、水體、卡通描邊等 2D 特效。
 - `[3D]` 完整 PBR：Albedo/Normal/Metallic/Smoothness/AO 精準配置；2D 只用到 sprite normal/mask map。
 - 把關材質球效能與 Texture 壓縮格式（手機偏 ASTC，避免無謂 RGBA32）。
+
+---
+
+## 四、🔌 Unity MCP（AI 直接連編輯器）
+
+對應 `CLAUDE.md` 十四。這節決定「AI 是隔著手套改程式，還是真的坐在 Unity 前面」——有連線時，
+場景操作、編譯檢查、Play Mode、截圖都能自己做完再回報；沒連線就退回只改 `.cs` 的半盲模式。
+
+用的是 **MCP For Unity**（CoplayDev）：package id `com.coplaydev.unity-mcp`，來源是 git URL（`CoplayDev/unity-mcp` #main）。
+
+### 三角色架構（缺一不可）
+
+| 角色 | 是什麼 | 壞掉時的症狀 |
+|---|---|---|
+| ① AI client | Claude Code / Codex，連 `http://127.0.0.1:8080/mcp` | session 裡看不到 UnityMCP 工具 |
+| ② Python server | `mcp-for-unity-server`，中繼站，掛 8080 埠 | session 啟動時整組工具不載入 |
+| ③ Unity 內 bridge | 編輯器裡的 plugin，反向連到 server | **工具看得到但每個呼叫都失敗**（最容易誤判的一種） |
+
+要點：**server 是獨立進程，Unity 關掉它照活**（8080 續留），Unity 重開後 bridge 會自己連回同一個 server。
+所以「工具存在」只證明 ①②，不證明 ③。這就是 `CLAUDE.md` 十四之1 要先探測的原因。
+
+### 連線判斷（探測法）
+動任何東西前發一個唯讀呼叫：`read_console`。
+- **有回應** → 三角色都活著，走 `CLAUDE.md` 三的第一條路（我自己動編輯器）。
+- **呼叫失敗** → bridge 沒連上。先確認 Unity 開著且已載入完；不行就叫 barry 重開 session（Claude 可試 `/mcp reconnect`）。
+- **工具根本不在列表** → server 沒起或開機順序反了，重啟 session 才會載入。
+
+### 開機順序（會踩一次的坑）
+**先開 Unity → 再開 AI session。** 反了 MCP 不會載入。
+- Unity 載入要 1–3 分鐘，之後 Auto-Start 自己接手，人不用做事。
+- 驗證方式：8080 在 Listen ＋ 有 established 連線且 client 是 Unity。
+- server log 在 `%LOCALAPPDATA%\UnityMCP\Logs\`，連不上時先看這裡。
+
+### Auto-Start（設一次，全專案生效）
+開任何 Unity 專案 → server + bridge 全自動，零手動。
+- 開關是 EditorPrefs 的 `MCPForUnity.AutoStartOnLoad` = true。**EditorPrefs 是「每使用者」共用**，設一次所有專案（含未來新專案）都生效。
+- 只在 **HTTP transport** 模式作用；domain reload（改完 C# 重編譯）後由 bridge 的 reload handler 自動恢復。
+- **新機器／新環境**：把同層的 `McpAutoSetupOnce.cs` 丟進專案 `Assets/Editor/`，Unity 一編譯就生效——它會開 Auto-Start、順手裝 Roslyn、並立刻踢一次 auto-start（不用重開編輯器），結果寫到 `Temp/mcp_auto_setup_result.txt`。看到 `DONE` 就可以把腳本刪掉。內含 `SessionState` 防重跑。
+
+### 工具對照（依任務挑，不用背全部）
+
+| 想做的事 | 用哪個 |
+|---|---|
+| 確認編譯有沒有錯 | `read_console`（**每次改完 C# 的第一步**） |
+| 在編輯器裡跑任意 C# 驗證想法 | `execute_code`（最萬用的驗證神器） |
+| 進出 Play Mode | `manage_editor` |
+| 開/存/切場景 | `manage_scene` |
+| 建物件、改階層 | `manage_gameobject` / `find_gameobjects` |
+| 掛元件、設欄位值 | `manage_components` |
+| 做 / 改 Prefab | `manage_prefabs` |
+| 跑單元測試 | `run_tests` + `get_test_job`（驗證閉環） |
+| 建置 | `manage_build` |
+| 執行編輯器菜單項 | `execute_menu_item` |
+| 多個操作省 round-trip | `batch_execute` |
+| **截圖** | 沒有專用工具 → `execute_code` 跑 `ScreenCapture.CaptureScreenshot` |
+
+其餘（probuilder / vfx / physics / graphics…）用到再研究。
+
+### Roslyn（`execute_code` 想寫現代 C# 就要它）
+- **每專案一份**，裝在 `Assets/Plugins/Roslyn`（5 個 NuGet DLL）。裝了才能用 `compiler=roslyn`。
+- 沒裝時 `execute_code` 走內建 **CodeDom，卡在 C# 6**：最常見的翻車是 **local function 直接 compile error** → 沒 Roslyn 就把程式碼寫平鋪。
+- 換專案要先確認裝了沒；沒有就用 `McpAutoSetupOnce.cs` 或套件內的 RoslynInstaller 裝。
+
+### 可選依賴政策
+ProBuilder / VFX Graph：2D 專案用不到，不裝。Cinemachine：那顆按鈕只是把 `com.unity.cinemachine` 加進當前專案，要鏡頭系統時再裝（見第一節選配表）。
+
+### 雷點
+- **Unity 沒 focus 不會刷新 Assets**：從外部塞檔（例如生完美術圖）後，要讓 Unity 拿到 focus 才會 import；必要時用視窗前景化喚它。
+- **會動的東西別亂升**：套件版本正常運作時，看到新版先不動。
+- 動場景前先確認**當前開的是哪個場景**，並先留 git 存檔點。
+- 沒有連線時**不要宣稱驗證過**——半盲模式沒有 console 也沒有 Play Mode，照 `CLAUDE.md` 十之3 明講交回人類。
